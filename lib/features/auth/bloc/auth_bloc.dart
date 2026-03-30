@@ -8,7 +8,6 @@ import '../../../core/usecase/usecase.dart';
 import '../domain/entities/user.dart';
 import '../domain/usecases/get_current_user.dart';
 import '../domain/usecases/observe_auth_state.dart';
-import '../domain/usecases/sign_in_with_email.dart';
 import '../domain/usecases/sign_out.dart';
 import '../domain/usecases/update_subscription_tier.dart';
 
@@ -40,15 +39,6 @@ final class AuthStarted extends AuthEvent {
 	const AuthStarted();
 }
 
-final class AuthSignInRequested extends AuthEvent {
-	const AuthSignInRequested(this.email);
-
-	final String email;
-
-	@override
-	List<Object?> get props => <Object?>[email];
-}
-
 final class AuthSignOutRequested extends AuthEvent {
 	const AuthSignOutRequested();
 }
@@ -75,17 +65,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 	AuthBloc({
 		required ObserveAuthState observeAuthState,
 		required GetCurrentUser getCurrentUser,
-		required SignInWithEmail signInWithEmail,
 		required SignOut signOut,
 		required UpdateSubscriptionTier updateSubscriptionTier,
 	}) : _observeAuthState = observeAuthState,
 			 _getCurrentUser = getCurrentUser,
-			 _signInWithEmail = signInWithEmail,
 			 _signOut = signOut,
 			 _updateSubscriptionTier = updateSubscriptionTier,
 			 super(const AuthState.unknown()) {
 		on<AuthStarted>(_onStarted);
-		on<AuthSignInRequested>(_onSignInRequested);
 		on<AuthSignOutRequested>(_onSignOutRequested);
 		on<AuthSubscriptionUpdated>(_onSubscriptionUpdated);
 		on<_AuthUserChanged>(_onAuthUserChanged);
@@ -99,7 +86,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
 	final ObserveAuthState _observeAuthState;
 	final GetCurrentUser _getCurrentUser;
-	final SignInWithEmail _signInWithEmail;
 	final SignOut _signOut;
 	final UpdateSubscriptionTier _updateSubscriptionTier;
 	late final StreamSubscription<User?> _userSubscription;
@@ -111,13 +97,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 			return;
 		}
 		emit(AuthState.authenticated(currentUser));
-	}
-
-	Future<void> _onSignInRequested(
-		AuthSignInRequested event,
-		Emitter<AuthState> emit,
-	) async {
-		await _signInWithEmail(SignInWithEmailParams(email: event.email));
 	}
 
 	Future<void> _onSignOutRequested(

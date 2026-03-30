@@ -1,14 +1,22 @@
 import 'package:get_it/get_it.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/router/app_router.dart';
+import '../config/auth_environment.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/bloc/login_form_cubit.dart';
+import '../../features/auth/bloc/signup_form_cubit.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart'
     as auth_contract;
 import '../../features/auth/domain/usecases/get_current_user.dart';
 import '../../features/auth/domain/usecases/observe_auth_state.dart';
+import '../../features/auth/domain/usecases/sign_in_with_apple.dart';
 import '../../features/auth/domain/usecases/sign_in_with_email.dart';
+import '../../features/auth/domain/usecases/sign_in_with_google.dart';
+import '../../features/auth/domain/usecases/sign_up_with_email.dart';
 import '../../features/auth/domain/usecases/sign_out.dart';
 import '../../features/auth/domain/usecases/update_subscription_tier.dart';
 import '../../features/daily_horoscope/data/datasources/daily_horoscope_remote_data_source.dart';
@@ -80,9 +88,18 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<GemstoneEngine>(() => RuleBasedGemstoneEngine());
   sl.registerLazySingleton<AiPersonalizer>(() => LocalTemplateAiPersonalizer());
   sl.registerLazySingleton<BillingGateway>(() => MockBillingGateway());
+  sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance);
+  sl.registerLazySingleton<SupabaseClient>(() => Supabase.instance.client);
 
   sl.registerLazySingleton<AuthLocalDataSource>(
-    () => InMemoryAuthLocalDataSource(),
+    () => SupabaseAuthLocalDataSource(
+      supabaseClient: sl<SupabaseClient>(),
+      googleSignIn: sl<GoogleSignIn>(),
+      googleServerClientId: AuthEnvironment.googleServerClientId,
+      googleIosClientId: AuthEnvironment.googleIosClientId,
+      appleWebClientId: AuthEnvironment.appleWebClientId,
+      appleWebRedirectUrl: AuthEnvironment.appleWebRedirectUrl,
+    ),
     dispose: (AuthLocalDataSource source) => source.dispose(),
   );
   sl.registerLazySingleton<auth_contract.AuthRepository>(
@@ -98,6 +115,15 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<SignInWithEmail>(
     () => SignInWithEmail(sl<auth_contract.AuthRepository>()),
   );
+  sl.registerLazySingleton<SignUpWithEmail>(
+    () => SignUpWithEmail(sl<auth_contract.AuthRepository>()),
+  );
+  sl.registerLazySingleton<SignInWithGoogle>(
+    () => SignInWithGoogle(sl<auth_contract.AuthRepository>()),
+  );
+  sl.registerLazySingleton<SignInWithApple>(
+    () => SignInWithApple(sl<auth_contract.AuthRepository>()),
+  );
   sl.registerLazySingleton<SignOut>(
     () => SignOut(sl<auth_contract.AuthRepository>()),
   );
@@ -109,11 +135,25 @@ Future<void> initDependencies({bool reset = false}) async {
     () => AuthBloc(
       observeAuthState: sl<ObserveAuthState>(),
       getCurrentUser: sl<GetCurrentUser>(),
-      signInWithEmail: sl<SignInWithEmail>(),
       signOut: sl<SignOut>(),
       updateSubscriptionTier: sl<UpdateSubscriptionTier>(),
     ),
     dispose: (AuthBloc bloc) => bloc.close(),
+  );
+
+  sl.registerFactory<LoginFormCubit>(
+    () => LoginFormCubit(
+      signInWithEmail: sl<SignInWithEmail>(),
+      signInWithGoogle: sl<SignInWithGoogle>(),
+      signInWithApple: sl<SignInWithApple>(),
+    ),
+  );
+  sl.registerFactory<SignupFormCubit>(
+    () => SignupFormCubit(
+      signUpWithEmail: sl<SignUpWithEmail>(),
+      signInWithGoogle: sl<SignInWithGoogle>(),
+      signInWithApple: sl<SignInWithApple>(),
+    ),
   );
 
   sl.registerLazySingleton<UsagePolicy>(

@@ -26,6 +26,8 @@ final class SignupFormState extends Equatable {
   final String zodiacSign;
   final String? errorMessage;
 
+  bool get isSubmitting => status == SignupFormStatus.submitting;
+
   SignupFormState copyWith({
     SignupFormStatus? status,
     DateTime? dateOfBirth,

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../bloc/auth_bloc.dart';
+import '../../../core/di/injection.dart';
 import '../bloc/signup_form_cubit.dart';
 import '../bloc/signup_form_state.dart';
+import '../domain/entities/auth_profile.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -16,8 +17,8 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (BuildContext context) => SignupFormCubit(),
+    return BlocProvider<SignupFormCubit>(
+      create: (BuildContext context) => sl<SignupFormCubit>(),
       child: const _SignupPageBody(),
     );
   }
@@ -66,11 +67,7 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
       lastDate: today,
     );
 
-    if (picked == null) {
-      return;
-    }
-
-    if (!mounted) {
+    if (picked == null || !mounted) {
       return;
     }
 
@@ -82,7 +79,7 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
   Future<void> _pickTimeOfBirth() async {
     final SignupFormState formState = context.read<SignupFormCubit>().state;
     final List<String> timeParts =
-        formState.timeOfBirth?.split(':') ?? ['6', '00'];
+        formState.timeOfBirth?.split(':') ?? <String>['6', '00'];
     final TimeOfDay initialTime = TimeOfDay(
       hour: int.tryParse(timeParts.first) ?? 6,
       minute: int.tryParse(timeParts.last) ?? 0,
@@ -93,11 +90,7 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
       initialTime: initialTime,
     );
 
-    if (picked == null) {
-      return;
-    }
-
-    if (!mounted) {
+    if (picked == null || !mounted) {
       return;
     }
 
@@ -111,36 +104,68 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
       return;
     }
 
-    final SignupFormCubit signupFormCubit = context.read<SignupFormCubit>();
-
-    final String birthSummary =
-        '${_dateOfBirthController.text}, ${_timeOfBirthController.text}, ${_placeOfBirthController.text.trim()}';
-
-    signupFormCubit.onFormSubmitting();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Sign up submitted (mock flow) for ${_nameController.text.trim()} - $birthSummary',
-        ),
-      ),
+    await context.read<SignupFormCubit>().signUpWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      profile: _buildProfile(),
     );
-    context.read<AuthBloc>().add(AuthSignInRequested(_emailController.text));
-    await Future<void>.delayed(const Duration(seconds: 1));
-    if (!mounted) {
+  }
+
+  Future<void> _submitGoogle() async {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
-    signupFormCubit.onFormSubmitSuccess();
+
+    await context.read<SignupFormCubit>().signUpWithGoogle(_buildProfile());
+  }
+
+  Future<void> _submitApple() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    await context.read<SignupFormCubit>().signUpWithApple(_buildProfile());
+  }
+
+  AuthProfile _buildProfile() {
+    return AuthProfile(
+      displayName: _nameController.text.trim(),
+      zodiacSign: _zodiacController.text.trim(),
+      dateOfBirth: context.read<SignupFormCubit>().state.dateOfBirth!,
+      timeOfBirth: _timeOfBirthController.text.trim(),
+      placeOfBirth: _placeOfBirthController.text.trim(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
     return BlocListener<SignupFormCubit, SignupFormState>(
-      listenWhen: (SignupFormState previous, SignupFormState current) =>
-          previous.zodiacSign != current.zodiacSign,
       listener: (BuildContext context, SignupFormState state) {
         _zodiacController.text = state.zodiacSign;
+
+        if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+          final String message = state.errorMessage!.replaceFirst(
+            'AuthException: ',
+            '',
+          );
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(message)));
+        }
+
+        if (state.status == SignupFormStatus.success) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Account created. If you are not redirected, confirm your email in Supabase and try signing in.',
+                ),
+              ),
+            );
+        }
       },
       child: Scaffold(
         body: Container(
@@ -213,15 +238,64 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
                                 Text(
                                   'Sign up',
                                   textAlign: TextAlign.center,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.headlineSmall,
+                                  style: Theme.of(context).textTheme.headlineSmall,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Add your details to personalize kundli and daily insights.',
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 18),
+                                BlocBuilder<SignupFormCubit, SignupFormState>(
+                                  builder: (
+                                    BuildContext context,
+                                    SignupFormState state,
+                                  ) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: <Widget>[
+                                        OutlinedButton.icon(
+                                          onPressed: state.isSubmitting
+                                              ? null
+                                              : _submitGoogle,
+                                          icon: const Icon(
+                                            Icons.g_mobiledata_rounded,
+                                          ),
+                                          label: const Text(
+                                            'Sign up with Google',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        OutlinedButton.icon(
+                                          onPressed: state.isSubmitting
+                                              ? null
+                                              : _submitApple,
+                                          icon: const Icon(Icons.apple),
+                                          label: const Text(
+                                            'Sign up with Apple',
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 18),
+                                Row(
+                                  children: <Widget>[
+                                    const Expanded(child: Divider()),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      child: Text(
+                                        'or use email',
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                    const Expanded(child: Divider()),
+                                  ],
                                 ),
                                 const SizedBox(height: 18),
                                 TextFormField(
@@ -340,9 +414,26 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
                                   },
                                 ),
                                 const SizedBox(height: 18),
-                                FilledButton(
-                                  onPressed: _submit,
-                                  child: const Text('Create account'),
+                                BlocBuilder<SignupFormCubit, SignupFormState>(
+                                  builder: (
+                                    BuildContext context,
+                                    SignupFormState state,
+                                  ) {
+                                    return FilledButton(
+                                      onPressed: state.isSubmitting
+                                          ? null
+                                          : _submit,
+                                      child: state.isSubmitting
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.2,
+                                              ),
+                                            )
+                                          : const Text('Create account'),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 10),
                                 TextButton(

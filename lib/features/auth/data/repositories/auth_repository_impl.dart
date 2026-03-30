@@ -1,4 +1,5 @@
 import '../../../../core/models/subscription_models.dart';
+import '../../domain/entities/auth_profile.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -25,8 +26,31 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithEmail(String email) {
-    return _localDataSource.signInWithEmail(email);
+  Future<void> signInWithEmail(String email, String password) {
+    return _localDataSource.signInWithEmail(email, password);
+  }
+
+  @override
+  Future<void> signInWithGoogle({AuthProfile? profile}) {
+    return _localDataSource.signInWithGoogle(profile: profile);
+  }
+
+  @override
+  Future<void> signInWithApple({AuthProfile? profile}) {
+    return _localDataSource.signInWithApple(profile: profile);
+  }
+
+  @override
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+    required AuthProfile profile,
+  }) {
+    return _localDataSource.signUpWithEmail(
+      email: email,
+      password: password,
+      profile: profile,
+    );
   }
 
   @override

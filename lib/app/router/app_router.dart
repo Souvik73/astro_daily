@@ -183,7 +183,7 @@ class AppRouter {
     if (!loggedIn && !isOnLogin && !isOnSignup) {
       return '/login';
     }
-    if (loggedIn && isOnLogin) {
+    if (loggedIn && (isOnLogin || isOnSignup)) {
       return '/home';
     }
     return null;

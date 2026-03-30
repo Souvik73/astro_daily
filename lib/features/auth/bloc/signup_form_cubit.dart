@@ -1,9 +1,24 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../domain/entities/auth_profile.dart';
+import '../domain/usecases/sign_in_with_apple.dart';
+import '../domain/usecases/sign_in_with_google.dart';
+import '../domain/usecases/sign_up_with_email.dart';
 import 'signup_form_state.dart';
 
 class SignupFormCubit extends Cubit<SignupFormState> {
-  SignupFormCubit() : super(const SignupFormState.initial());
+  SignupFormCubit({
+    required SignUpWithEmail signUpWithEmail,
+    required SignInWithGoogle signInWithGoogle,
+    required SignInWithApple signInWithApple,
+  }) : _signUpWithEmail = signUpWithEmail,
+       _signInWithGoogle = signInWithGoogle,
+       _signInWithApple = signInWithApple,
+       super(const SignupFormState.initial());
+
+  final SignUpWithEmail _signUpWithEmail;
+  final SignInWithGoogle _signInWithGoogle;
+  final SignInWithApple _signInWithApple;
 
   String _calculateZodiacSign(DateTime dateOfBirth) {
     final int month = dateOfBirth.month;
@@ -81,5 +96,45 @@ class SignupFormCubit extends Cubit<SignupFormState> {
 
   void resetForm() {
     emit(const SignupFormState.initial());
+  }
+
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+    required AuthProfile profile,
+  }) async {
+    onFormSubmitting();
+    try {
+      await _signUpWithEmail(
+        SignUpWithEmailParams(
+          email: email,
+          password: password,
+          profile: profile,
+        ),
+      );
+      onFormSubmitSuccess();
+    } catch (error) {
+      onFormSubmitFailure(error.toString());
+    }
+  }
+
+  Future<void> signUpWithGoogle(AuthProfile profile) async {
+    onFormSubmitting();
+    try {
+      await _signInWithGoogle(SignInWithGoogleParams(profile: profile));
+      onFormSubmitSuccess();
+    } catch (error) {
+      onFormSubmitFailure(error.toString());
+    }
+  }
+
+  Future<void> signUpWithApple(AuthProfile profile) async {
+    onFormSubmitting();
+    try {
+      await _signInWithApple(SignInWithAppleParams(profile: profile));
+      onFormSubmitSuccess();
+    } catch (error) {
+      onFormSubmitFailure(error.toString());
+    }
   }
 }

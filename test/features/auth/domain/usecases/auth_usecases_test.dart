@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:astro_daily/core/models/subscription_models.dart';
 import 'package:astro_daily/core/usecase/usecase.dart';
+import 'package:astro_daily/features/auth/domain/entities/auth_profile.dart';
 import 'package:astro_daily/features/auth/domain/entities/user.dart';
 import 'package:astro_daily/features/auth/domain/repositories/auth_repository.dart';
 import 'package:astro_daily/features/auth/domain/usecases/get_current_user.dart';
@@ -52,7 +53,10 @@ void main() {
           emitted = user;
         });
     await signInWithEmail(
-      const SignInWithEmailParams(email: 'seeker@astro.app'),
+      const SignInWithEmailParams(
+        email: 'seeker@astro.app',
+        password: 'password123',
+      ),
     );
     await Future<void>.delayed(const Duration(milliseconds: 10));
     await subscription.cancel();
@@ -130,7 +134,7 @@ class _FakeAuthRepository implements AuthRepository {
   Stream<User?> observeAuthState() => _controller.stream;
 
   @override
-  Future<void> signInWithEmail(String email) async {
+  Future<void> signInWithEmail(String email, String password) async {
     final User user = User(
       id: 'u_4',
       email: email,
@@ -143,6 +147,58 @@ class _FakeAuthRepository implements AuthRepository {
     );
     _currentUser = user;
     _controller.add(user);
+  }
+
+  @override
+  Future<void> signInWithApple({AuthProfile? profile}) async {
+    seedUser(
+      User(
+        id: 'u_apple',
+        email: 'apple@astro.app',
+        displayName: profile?.displayName ?? 'apple',
+        zodiacSign: profile?.zodiacSign ?? 'Aries',
+        dateOfBirth: profile?.dateOfBirth ?? DateTime(2000, 1, 1),
+        timeOfBirth: profile?.timeOfBirth ?? '06:00',
+        placeOfBirth: profile?.placeOfBirth ?? 'Kolkata, India',
+        tier: SubscriptionTier.free,
+      ),
+    );
+  }
+
+  @override
+  Future<void> signInWithGoogle({AuthProfile? profile}) async {
+    seedUser(
+      User(
+        id: 'u_google',
+        email: 'google@astro.app',
+        displayName: profile?.displayName ?? 'google',
+        zodiacSign: profile?.zodiacSign ?? 'Aries',
+        dateOfBirth: profile?.dateOfBirth ?? DateTime(2000, 1, 1),
+        timeOfBirth: profile?.timeOfBirth ?? '06:00',
+        placeOfBirth: profile?.placeOfBirth ?? 'Kolkata, India',
+        tier: SubscriptionTier.free,
+      ),
+    );
+  }
+
+  @override
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+    required AuthProfile profile,
+  }) async {
+    seedUser(
+      User(
+        id: 'u_signup',
+        email: email,
+        displayName: profile.displayName,
+        zodiacSign: profile.zodiacSign,
+        dateOfBirth: profile.dateOfBirth,
+        timeOfBirth: profile.timeOfBirth,
+        placeOfBirth: profile.placeOfBirth,
+        tier: SubscriptionTier.free,
+      ),
+    );
   }
 
   @override

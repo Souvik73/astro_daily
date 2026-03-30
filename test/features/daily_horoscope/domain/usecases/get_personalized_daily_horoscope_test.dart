@@ -1,6 +1,7 @@
 import 'package:astro_daily/core/error/failures.dart';
 import 'package:astro_daily/core/models/astro_models.dart';
 import 'package:astro_daily/core/models/subscription_models.dart';
+import 'package:astro_daily/features/auth/domain/entities/auth_profile.dart';
 import 'package:astro_daily/features/auth/domain/entities/user.dart';
 import 'package:astro_daily/features/auth/domain/repositories/auth_repository.dart';
 import 'package:astro_daily/features/daily_horoscope/data/datasources/daily_horoscope_remote_data_source.dart';
@@ -129,10 +130,23 @@ class _FakeAuthRepository implements AuthRepository {
   Stream<User?> observeAuthState() => const Stream<User?>.empty();
 
   @override
-  Future<void> signInWithEmail(String email) async {}
+  Future<void> signInWithApple({AuthProfile? profile}) async {}
+
+  @override
+  Future<void> signInWithEmail(String email, String password) async {}
+
+  @override
+  Future<void> signInWithGoogle({AuthProfile? profile}) async {}
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+    required AuthProfile profile,
+  }) async {}
 
   @override
   Future<void> updateSubscriptionTier(SubscriptionTier tier) async {}
