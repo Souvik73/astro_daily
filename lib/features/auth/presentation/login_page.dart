@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/theme/app_theme.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/widgets/astro_backdrop.dart';
 import '../bloc/login_form_cubit.dart';
 
 class LoginPage extends StatefulWidget {
@@ -86,7 +88,7 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final TextTheme textTheme = Theme.of(context).textTheme;
 
     return BlocListener<LoginFormCubit, LoginFormState>(
       listenWhen: (LoginFormState previous, LoginFormState current) =>
@@ -102,85 +104,96 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
           ..showSnackBar(SnackBar(content: Text(message)));
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: <Color>[
-                colorScheme.primaryContainer.withValues(alpha: 0.35),
-                colorScheme.surface,
-                const Color(0xFFFFF4D8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+        body: AstroBackdrop(
           child: SafeArea(
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
-                return Stack(
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: Text(
-                          'Align your stars with Astro Daily',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 38,
                     ),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        height: constraints.maxHeight * 0.85,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(30),
-                          ),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, -8),
-                            ),
-                          ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _TopBar(
+                          title: 'Astro Daily',
+                          subtitle: 'Personalized guidance, softened access.',
                         ),
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+                        const SizedBox(height: 24),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.heroGradient,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'Align with today’s\ncosmic rhythm',
+                                style: textTheme.displaySmall?.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'The login flow now feels like a premium astrology ritual instead of a generic utility form.',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.82),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: <Widget>[
+                                  _HeroChip('Daily guidance'),
+                                  _HeroChip('Free + Premium'),
+                                  _HeroChip('Profile-led insights'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cream.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(color: AppTheme.border),
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                color: AppTheme.midnight.withValues(alpha: 0.06),
+                                blurRadius: 24,
+                                offset: const Offset(0, 14),
+                              ),
+                            ],
+                          ),
                           child: Form(
                             key: _formKey,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: <Widget>[
                                 Center(
-                                  child: Container(
-                                    height: 4,
-                                    width: 48,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.outlineVariant,
-                                      borderRadius: BorderRadius.circular(99),
-                                    ),
+                                  child: Text(
+                                    'Welcome back',
+                                    style: textTheme.headlineMedium,
                                   ),
                                 ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  'Welcome back',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.headlineSmall,
-                                ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  'Sign in to continue with your personalized guidance.',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                                Center(
+                                  child: Text(
+                                    'Continue with the account that holds your chart and daily guidance.',
+                                    textAlign: TextAlign.center,
+                                    style: textTheme.bodyMedium,
+                                  ),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 18),
                                 BlocBuilder<LoginFormCubit, LoginFormState>(
                                   builder: (
                                     BuildContext context,
@@ -206,6 +219,11 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                           onPressed: state.isSubmitting
                                               ? null
                                               : _submitApple,
+                                          style: OutlinedButton.styleFrom(
+                                            backgroundColor: AppTheme.midnight,
+                                            foregroundColor: Colors.white,
+                                            side: BorderSide.none,
+                                          ),
                                           icon: const Icon(Icons.apple),
                                           label: const Text(
                                             'Continue with Apple',
@@ -216,21 +234,7 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                   },
                                 ),
                                 const SizedBox(height: 18),
-                                Row(
-                                  children: <Widget>[
-                                    const Expanded(child: Divider()),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                      ),
-                                      child: Text(
-                                        'or use email',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
-                                    ),
-                                    const Expanded(child: Divider()),
-                                  ],
-                                ),
+                                const _InlineDivider(label: 'or use email'),
                                 const SizedBox(height: 18),
                                 TextFormField(
                                   key: const Key('login_email_field'),
@@ -272,20 +276,41 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                     BuildContext context,
                                     LoginFormState state,
                                   ) {
-                                    return FilledButton(
-                                      key: const Key('login_continue_button'),
-                                      onPressed: state.isSubmitting
-                                          ? null
-                                          : _submitEmail,
-                                      child: state.isSubmitting
-                                          ? const SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.2,
-                                              ),
-                                            )
-                                          : const Text('Continue with Email'),
+                                    return DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: AppTheme.heroGradient,
+                                        borderRadius: BorderRadius.circular(22),
+                                        boxShadow: <BoxShadow>[
+                                          BoxShadow(
+                                            color: AppTheme.coral.withValues(
+                                              alpha: 0.22,
+                                            ),
+                                            blurRadius: 18,
+                                            offset: const Offset(0, 12),
+                                          ),
+                                        ],
+                                      ),
+                                      child: FilledButton(
+                                        key: const Key('login_continue_button'),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                        ),
+                                        onPressed: state.isSubmitting
+                                            ? null
+                                            : _submitEmail,
+                                        child: state.isSubmitting
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2.2,
+                                                      color: Colors.white,
+                                                    ),
+                                              )
+                                            : const Text('Continue with Email'),
+                                      ),
                                     );
                                   },
                                 ),
@@ -295,36 +320,34 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                   children: <Widget>[
                                     Text(
                                       'New here?',
-                                      style: Theme.of(context).textTheme.bodyMedium,
+                                      style: textTheme.bodyMedium,
                                     ),
                                     TextButton(
                                       onPressed: () => context.push('/signup'),
-                                      child: const Text('Sign up'),
+                                      child: const Text('Create profile'),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 4),
                                 Text.rich(
                                   TextSpan(
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: textTheme.bodySmall,
                                     children: <InlineSpan>[
                                       const TextSpan(
                                         text: 'By continuing, you accept our ',
                                       ),
                                       TextSpan(
                                         text: 'Terms',
-                                        style: TextStyle(
-                                          color: colorScheme.primary,
-                                          fontWeight: FontWeight.w600,
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: AppTheme.berry,
                                         ),
                                         recognizer: _termsTapRecognizer,
                                       ),
                                       const TextSpan(text: ' and '),
                                       TextSpan(
                                         text: 'Privacy Policy',
-                                        style: TextStyle(
-                                          color: colorScheme.primary,
-                                          fontWeight: FontWeight.w600,
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: AppTheme.berry,
                                         ),
                                         recognizer: _privacyTapRecognizer,
                                       ),
@@ -337,15 +360,96 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 );
               },
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.berry),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(title, style: textTheme.titleLarge),
+              Text(subtitle, style: textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  const _HeroChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineDivider extends StatelessWidget {
+  const _InlineDivider({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        const Expanded(child: Divider()),
+      ],
     );
   }
 }

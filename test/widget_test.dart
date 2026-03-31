@@ -1,26 +1,28 @@
-import 'package:flutter/widgets.dart';
+import 'package:astro_daily/features/ui_preview/presentation/ui_preview_page.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:astro_daily/app/astro_daily_app.dart';
-import 'package:astro_daily/core/di/injection.dart';
-
 void main() {
-  testWidgets('login-first flow routes to home after sign in', (
+  testWidgets('ui preview renders the redesigned core screens', (
     WidgetTester tester,
   ) async {
-    await initDependencies(reset: true);
-    await tester.pumpWidget(const AstroDailyApp());
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1720, 2400);
+    addTearDown(tester.view.reset);
 
-    expect(find.text('Welcome to Astro Daily'), findsOneWidget);
-
-    await tester.enterText(
-      find.byKey(const Key('login_email_field')),
-      'pilot@astrodaily.app',
+    await tester.pumpWidget(
+      const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: UiPreviewPage(),
+      ),
     );
-    await tester.tap(find.byKey(const Key('login_continue_button')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Welcome back'), findsOneWidget);
-    expect(find.text('Astro Daily Modules'), findsOneWidget);
+    expect(find.text('Astro Daily UI Direction'), findsOneWidget);
+    expect(find.text('LOGIN'), findsOneWidget);
+    expect(find.text('HOME'), findsOneWidget);
+    expect(find.text('DAILY HOROSCOPE'), findsOneWidget);
+    expect(find.text('SUBSCRIPTION'), findsOneWidget);
+    expect(find.text('Premium, softened'), findsOneWidget);
   });
 }

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme/app_theme.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/widgets/astro_backdrop.dart';
+import '../../../core/widgets/astro_page_components.dart';
 import '../bloc/signup_form_cubit.dart';
 import '../bloc/signup_form_state.dart';
 import '../domain/entities/auth_profile.dart';
@@ -32,7 +35,8 @@ class _SignupPageBody extends StatefulWidget {
 }
 
 class _SignupPageBodyState extends State<_SignupPageBody> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _identityFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _birthFormKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -40,6 +44,9 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
   final TextEditingController _dateOfBirthController = TextEditingController();
   final TextEditingController _timeOfBirthController = TextEditingController();
   final TextEditingController _placeOfBirthController = TextEditingController();
+
+  int _currentStep = 0;
+  bool _requireEmailCredentials = false;
 
   @override
   void dispose() {
@@ -99,8 +106,28 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
     _timeOfBirthController.text = formattedTime;
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
+  void _goToNextStep() {
+    final FormState? form = _identityFormKey.currentState;
+    if (form?.validate() != true) {
+      return;
+    }
+    setState(() {
+      _currentStep = 1;
+    });
+  }
+
+  bool _validateRequiredProfileDetails() {
+    final bool identityValid = _nameController.text.trim().isNotEmpty;
+    final bool birthValid = _birthFormKey.currentState?.validate() ?? false;
+    return identityValid && birthValid;
+  }
+
+  Future<void> _submitEmail() async {
+    setState(() {
+      _requireEmailCredentials = true;
+      _currentStep = 1;
+    });
+    if (!_validateRequiredProfileDetails()) {
       return;
     }
 
@@ -112,7 +139,11 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
   }
 
   Future<void> _submitGoogle() async {
-    if (!_formKey.currentState!.validate()) {
+    setState(() {
+      _requireEmailCredentials = false;
+      _currentStep = 1;
+    });
+    if (!_validateRequiredProfileDetails()) {
       return;
     }
 
@@ -120,7 +151,11 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
   }
 
   Future<void> _submitApple() async {
-    if (!_formKey.currentState!.validate()) {
+    setState(() {
+      _requireEmailCredentials = false;
+      _currentStep = 1;
+    });
+    if (!_validateRequiredProfileDetails()) {
       return;
     }
 
@@ -139,7 +174,7 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final TextTheme textTheme = Theme.of(context).textTheme;
 
     return BlocListener<SignupFormCubit, SignupFormState>(
       listener: (BuildContext context, SignupFormState state) {
@@ -161,300 +196,524 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
             ..showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Account created. If you are not redirected, confirm your email in Supabase and try signing in.',
+                  'Account created. For email sign up, confirm your email before signing in.',
                 ),
               ),
             );
         }
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: <Color>[
-                colorScheme.primaryContainer.withValues(alpha: 0.35),
-                colorScheme.surface,
-                const Color(0xFFFFF4D8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+        body: AstroBackdrop(
           child: SafeArea(
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
-                return Stack(
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: Text(
-                          'Create your cosmic profile',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ),
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 38,
                     ),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        height: constraints.maxHeight * 0.85,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(30),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        AstroPageHeader(
+                          title: 'Create profile',
+                          subtitle: 'Two steps to make guidance personal.',
+                          onBack: () => context.go('/login'),
+                          trailing: const AstroTopIconButton(
+                            icon: Icons.auto_awesome_rounded,
                           ),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, -8),
-                            ),
-                          ],
                         ),
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: <Widget>[
-                                Center(
-                                  child: Container(
-                                    height: 4,
-                                    width: 48,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.outlineVariant,
-                                      borderRadius: BorderRadius.circular(99),
+                        const SizedBox(height: 22),
+                        AstroHeroSurface(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                _currentStep == 0
+                                    ? 'Start your\ncosmic profile'
+                                    : 'Add birth details\nfor accurate guidance',
+                                style: textTheme.displaySmall?.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                _currentStep == 0
+                                    ? 'Keep the first step light. We only ask for the basics before moving into birth details.'
+                                    : 'This is the data that powers horoscope, kundli, matching, numerology, and the upcoming chat companion.',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.84),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: <Widget>[
+                                  Expanded(
+                                    child: _StepPill(
+                                      stepNumber: 1,
+                                      title: 'Identity',
+                                      isActive: _currentStep == 0,
+                                      isComplete: _currentStep > 0,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  'Sign up',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Add your details to personalize kundli and daily insights.',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 18),
-                                BlocBuilder<SignupFormCubit, SignupFormState>(
-                                  builder: (
-                                    BuildContext context,
-                                    SignupFormState state,
-                                  ) {
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: <Widget>[
-                                        OutlinedButton.icon(
-                                          onPressed: state.isSubmitting
-                                              ? null
-                                              : _submitGoogle,
-                                          icon: const Icon(
-                                            Icons.g_mobiledata_rounded,
-                                          ),
-                                          label: const Text(
-                                            'Sign up with Google',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        OutlinedButton.icon(
-                                          onPressed: state.isSubmitting
-                                              ? null
-                                              : _submitApple,
-                                          icon: const Icon(Icons.apple),
-                                          label: const Text(
-                                            'Sign up with Apple',
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 18),
-                                Row(
-                                  children: <Widget>[
-                                    const Expanded(child: Divider()),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                      ),
-                                      child: Text(
-                                        'or use email',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _StepPill(
+                                      stepNumber: 2,
+                                      title: 'Birth details',
+                                      isActive: _currentStep == 1,
+                                      isComplete: false,
                                     ),
-                                    const Expanded(child: Divider()),
-                                  ],
-                                ),
-                                const SizedBox(height: 18),
-                                TextFormField(
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          child: _currentStep == 0
+                              ? _IdentityStep(
+                                  key: const ValueKey<String>('identity_step'),
+                                  formKey: _identityFormKey,
                                   controller: _nameController,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Full name',
-                                  ),
-                                  validator: (String? value) {
-                                    if ((value?.trim() ?? '').isEmpty) {
-                                      return 'Name is required';
-                                    }
-                                    return null;
+                                  onContinue: _goToNextStep,
+                                )
+                              : _BirthStep(
+                                  key: const ValueKey<String>('birth_step'),
+                                  formKey: _birthFormKey,
+                                  zodiacController: _zodiacController,
+                                  dateOfBirthController: _dateOfBirthController,
+                                  timeOfBirthController: _timeOfBirthController,
+                                  placeOfBirthController:
+                                      _placeOfBirthController,
+                                  emailController: _emailController,
+                                  passwordController: _passwordController,
+                                  requireEmailCredentials:
+                                      _requireEmailCredentials,
+                                  onPickDate: _pickDateOfBirth,
+                                  onPickTime: _pickTimeOfBirth,
+                                  onBack: () {
+                                    setState(() {
+                                      _currentStep = 0;
+                                      _requireEmailCredentials = false;
+                                    });
                                   },
+                                  onEmailSubmit: _submitEmail,
+                                  onGoogleSubmit: _submitGoogle,
+                                  onAppleSubmit: _submitApple,
                                 ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email',
-                                  ),
-                                  validator: (String? value) {
-                                    final String email = value?.trim() ?? '';
-                                    if (email.isEmpty) {
-                                      return 'Email is required';
-                                    }
-                                    if (!email.contains('@')) {
-                                      return 'Enter a valid email';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: true,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Password',
-                                  ),
-                                  validator: (String? value) {
-                                    if ((value ?? '').length < 8) {
-                                      return 'Password should be at least 8 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _zodiacController,
-                                  readOnly: true,
-                                  enabled: false,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Zodiac sign',
-                                    hintText:
-                                        'Auto-calculated from date of birth',
-                                  ),
-                                  validator: (String? value) {
-                                    if ((value ?? '').isEmpty) {
-                                      return 'Please select your date of birth first';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _dateOfBirthController,
-                                  readOnly: true,
-                                  onTap: _pickDateOfBirth,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Date of birth',
-                                    suffixIcon: Icon(
-                                      Icons.calendar_today_outlined,
-                                    ),
-                                  ),
-                                  validator: (String? value) {
-                                    if ((value ?? '').isEmpty) {
-                                      return 'Date of birth is required';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _timeOfBirthController,
-                                  readOnly: true,
-                                  onTap: _pickTimeOfBirth,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Time of birth',
-                                    suffixIcon: Icon(
-                                      Icons.access_time_outlined,
-                                    ),
-                                  ),
-                                  validator: (String? value) {
-                                    if ((value ?? '').isEmpty) {
-                                      return 'Time of birth is required';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _placeOfBirthController,
-                                  textInputAction: TextInputAction.done,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Place of birth',
-                                    hintText: 'City, Country',
-                                  ),
-                                  validator: (String? value) {
-                                    if ((value?.trim() ?? '').isEmpty) {
-                                      return 'Place of birth is required';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 18),
-                                BlocBuilder<SignupFormCubit, SignupFormState>(
-                                  builder: (
-                                    BuildContext context,
-                                    SignupFormState state,
-                                  ) {
-                                    return FilledButton(
-                                      onPressed: state.isSubmitting
-                                          ? null
-                                          : _submit,
-                                      child: state.isSubmitting
-                                          ? const SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.2,
-                                              ),
-                                            )
-                                          : const Text('Create account'),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-                                TextButton(
-                                  onPressed: () => context.go('/login'),
-                                  child: const Text(
-                                    'Already have an account? Sign in',
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => context.go('/login'),
+                            child: const Text('Already have an account? Sign in'),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 );
               },
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _IdentityStep extends StatelessWidget {
+  const _IdentityStep({
+    required this.formKey,
+    required this.controller,
+    required this.onContinue,
+    super.key,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController controller;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      decoration: BoxDecoration(
+        color: AppTheme.cream.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppTheme.midnight.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text('Step 1', style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(height: 6),
+            Text(
+              'What should we call you?',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'We use your name for a warmer, more personal daily ritual. The real astrology profile comes next.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 18),
+            TextFormField(
+              controller: controller,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                labelText: 'Full name',
+                hintText: 'Your name',
+              ),
+              validator: (String? value) {
+                if ((value?.trim() ?? '').isEmpty) {
+                  return 'Name is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 18),
+            FilledButton(onPressed: onContinue, child: const Text('Continue')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BirthStep extends StatelessWidget {
+  const _BirthStep({
+    required this.formKey,
+    required this.zodiacController,
+    required this.dateOfBirthController,
+    required this.timeOfBirthController,
+    required this.placeOfBirthController,
+    required this.emailController,
+    required this.passwordController,
+    required this.requireEmailCredentials,
+    required this.onPickDate,
+    required this.onPickTime,
+    required this.onBack,
+    required this.onEmailSubmit,
+    required this.onGoogleSubmit,
+    required this.onAppleSubmit,
+    super.key,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController zodiacController;
+  final TextEditingController dateOfBirthController;
+  final TextEditingController timeOfBirthController;
+  final TextEditingController placeOfBirthController;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool requireEmailCredentials;
+  final VoidCallback onPickDate;
+  final VoidCallback onPickTime;
+  final VoidCallback onBack;
+  final VoidCallback onEmailSubmit;
+  final VoidCallback onGoogleSubmit;
+  final VoidCallback onAppleSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      decoration: BoxDecoration(
+        color: AppTheme.cream.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppTheme.midnight.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Text('Step 2', style: Theme.of(context).textTheme.labelSmall),
+                const Spacer(),
+                TextButton(onPressed: onBack, child: const Text('Back')),
+              ],
+            ),
+            Text(
+              'Birth details',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'These details make the experience feel like Astro Daily instead of a generic horoscope feed.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 18),
+            TextFormField(
+              controller: zodiacController,
+              readOnly: true,
+              enabled: false,
+              decoration: const InputDecoration(
+                labelText: 'Zodiac sign',
+                hintText: 'Auto-calculated from date of birth',
+              ),
+              validator: (String? value) {
+                if ((value ?? '').isEmpty) {
+                  return 'Please select your date of birth first';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: dateOfBirthController,
+              readOnly: true,
+              onTap: onPickDate,
+              decoration: const InputDecoration(
+                labelText: 'Date of birth',
+                suffixIcon: Icon(Icons.calendar_today_outlined),
+              ),
+              validator: (String? value) {
+                if ((value ?? '').isEmpty) {
+                  return 'Date of birth is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: timeOfBirthController,
+              readOnly: true,
+              onTap: onPickTime,
+              decoration: const InputDecoration(
+                labelText: 'Time of birth',
+                suffixIcon: Icon(Icons.access_time_outlined),
+              ),
+              validator: (String? value) {
+                if ((value ?? '').isEmpty) {
+                  return 'Time of birth is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: placeOfBirthController,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Place of birth',
+                hintText: 'City, Country',
+              ),
+              validator: (String? value) {
+                if ((value?.trim() ?? '').isEmpty) {
+                  return 'Place of birth is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 18),
+            const _InlineDivider(label: 'Choose sign-up method'),
+            const SizedBox(height: 18),
+            BlocBuilder<SignupFormCubit, SignupFormState>(
+              builder: (BuildContext context, SignupFormState state) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    OutlinedButton.icon(
+                      onPressed: state.isSubmitting ? null : onGoogleSubmit,
+                      icon: const Icon(Icons.g_mobiledata_rounded),
+                      label: const Text('Continue with Google'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: state.isSubmitting ? null : onAppleSubmit,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: AppTheme.midnight,
+                        foregroundColor: Colors.white,
+                        side: BorderSide.none,
+                      ),
+                      icon: const Icon(Icons.apple),
+                      label: const Text('Continue with Apple'),
+                    ),
+                    const SizedBox(height: 18),
+                    const _InlineDivider(label: 'or use email'),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        hintText: 'you@example.com',
+                      ),
+                      validator: (String? value) {
+                        if (!requireEmailCredentials) {
+                          return null;
+                        }
+                        final String email = value?.trim() ?? '';
+                        if (email.isEmpty) {
+                          return 'Email is required for email sign up';
+                        }
+                        if (!email.contains('@')) {
+                          return 'Enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: passwordController,
+                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(labelText: 'Password'),
+                      validator: (String? value) {
+                        if (!requireEmailCredentials) {
+                          return null;
+                        }
+                        if ((value ?? '').length < 8) {
+                          return 'Password should be at least 8 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.heroGradient,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            color: AppTheme.coral.withValues(alpha: 0.22),
+                            blurRadius: 18,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                        ),
+                        onPressed: state.isSubmitting ? null : onEmailSubmit,
+                        child: state.isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Create account with Email'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepPill extends StatelessWidget {
+  const _StepPill({
+    required this.stepNumber,
+    required this.title,
+    required this.isActive,
+    required this.isComplete,
+  });
+
+  final int stepNumber;
+  final String title;
+  final bool isActive;
+  final bool isComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fill = isActive
+        ? Colors.white.withValues(alpha: 0.2)
+        : Colors.white.withValues(alpha: 0.12);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: isActive ? 0.36 : 0.16),
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isComplete ? 0.24 : 0.16),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              isComplete ? Icons.check_rounded : Icons.circle_outlined,
+              color: Colors.white,
+              size: isComplete ? 16 : 14,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$stepNumber. $title',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineDivider extends StatelessWidget {
+  const _InlineDivider({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        const Expanded(child: Divider()),
+      ],
     );
   }
 }

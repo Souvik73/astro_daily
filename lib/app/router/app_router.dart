@@ -25,6 +25,7 @@ import '../../features/settings/presentation/cubit/settings_cubit.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/subscription/presentation/cubit/subscription_cubit.dart';
 import '../../features/subscription/presentation/subscription_page.dart';
+import '../../features/ui_preview/presentation/ui_preview_page.dart';
 
 class AppRouter {
   AppRouter({
@@ -54,6 +55,11 @@ class AppRouter {
       refreshListenable: _refreshListenable,
       redirect: _redirect,
       routes: <RouteBase>[
+        GoRoute(
+          path: '/ui-preview',
+          builder: (BuildContext context, GoRouterState state) =>
+              const UiPreviewPage(),
+        ),
         GoRoute(
           path: '/login',
           builder: (BuildContext context, GoRouterState state) =>
@@ -177,9 +183,13 @@ class AppRouter {
 
   String? _redirect(BuildContext context, GoRouterState state) {
     final bool loggedIn = _authBloc.state.status == AuthStatus.authenticated;
+    final bool isOnPreview = state.matchedLocation == '/ui-preview';
     final bool isOnLogin = state.matchedLocation == '/login';
     final bool isOnSignup = state.matchedLocation == '/signup';
 
+    if (isOnPreview) {
+      return null;
+    }
     if (!loggedIn && !isOnLogin && !isOnSignup) {
       return '/login';
     }

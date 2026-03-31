@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_theme.dart';
+
 class FeatureCard extends StatelessWidget {
   const FeatureCard({
     required this.icon,
@@ -20,19 +22,26 @@ class FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final Color accent = isLocked ? AppTheme.coral : AppTheme.teal;
+
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: colorScheme.primaryContainer,
-                child: Icon(icon, color: colorScheme.onPrimaryContainer),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: accent),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -42,38 +51,50 @@ class FeatureCard extends StatelessWidget {
                     Row(
                       children: <Widget>[
                         Expanded(
+                          child: Text(title, style: textTheme.titleMedium),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                           child: Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            usageLabel,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: accent,
+                            ),
                           ),
                         ),
-                        if (isLocked)
-                          Icon(
-                            Icons.lock_outline_rounded,
-                            size: 18,
-                            color: colorScheme.error,
-                          ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    const SizedBox(height: 6),
+                    Text(subtitle, style: textTheme.bodyMedium),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: <Widget>[
+                        Text(
+                          isLocked ? 'Upgrade or unlock' : 'Open module',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: isLocked ? AppTheme.coral : AppTheme.berry,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          isLocked
+                              ? Icons.lock_outline_rounded
+                              : Icons.arrow_forward_rounded,
+                          size: 18,
+                          color: isLocked ? AppTheme.coral : AppTheme.ink,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                  Text(
-                    usageLabel,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                ],
               ),
             ],
           ),

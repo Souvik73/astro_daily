@@ -39,6 +39,7 @@ dependencies:
   equatable: ^2.0.8
   get_it: ^9.2.1
   url_launcher: ^6.3.2
+  google_fonts: ^6.3.2
   supabase_flutter: ^2.12.2
   sign_in_with_apple: ^7.0.1
   google_sign_in: ^7.2.0
