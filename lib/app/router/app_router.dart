@@ -5,7 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/auth/bloc/profile_completion_cubit.dart';
 import '../../features/auth/presentation/login_page.dart';
+import '../../features/auth/presentation/profile_completion_page.dart';
 import '../../features/auth/presentation/signup_page.dart';
 import '../../features/daily_horoscope/presentation/bloc/daily_horoscope_bloc.dart';
 import '../../features/daily_horoscope/presentation/daily_horoscope_page.dart';
@@ -30,6 +32,7 @@ import '../../features/ui_preview/presentation/ui_preview_page.dart';
 class AppRouter {
   AppRouter({
     required AuthBloc authBloc,
+    required ProfileCompletionCubit Function() profileCompletionCubitFactory,
     required DailyHoroscopeBloc Function() dailyHoroscopeBlocFactory,
     required HomeCubit Function() homeCubitFactory,
     required KundliCubit Function() kundliCubitFactory,
@@ -40,6 +43,7 @@ class AppRouter {
     required ProfileCubit Function() profileCubitFactory,
     required SettingsCubit Function() settingsCubitFactory,
   }) : _authBloc = authBloc,
+       _profileCompletionCubitFactory = profileCompletionCubitFactory,
        _dailyHoroscopeBlocFactory = dailyHoroscopeBlocFactory,
        _homeCubitFactory = homeCubitFactory,
        _kundliCubitFactory = kundliCubitFactory,
@@ -69,6 +73,16 @@ class AppRouter {
           path: '/signup',
           builder: (BuildContext context, GoRouterState state) =>
               const SignupPage(),
+        ),
+        GoRoute(
+          path: '/complete-profile',
+          builder: (BuildContext context, GoRouterState state) {
+            return BlocProvider<ProfileCompletionCubit>(
+              create: (BuildContext context) =>
+                  _profileCompletionCubitFactory(),
+              child: const ProfileCompletionPage(),
+            );
+          },
         ),
         GoRoute(
           path: '/home',
@@ -169,6 +183,7 @@ class AppRouter {
   }
 
   final AuthBloc _authBloc;
+  final ProfileCompletionCubit Function() _profileCompletionCubitFactory;
   final DailyHoroscopeBloc Function() _dailyHoroscopeBlocFactory;
   final HomeCubit Function() _homeCubitFactory;
   final KundliCubit Function() _kundliCubitFactory;
@@ -182,19 +197,32 @@ class AppRouter {
   late final GoRouter router;
 
   String? _redirect(BuildContext context, GoRouterState state) {
-    final bool loggedIn = _authBloc.state.status == AuthStatus.authenticated;
+    final AuthStatus authStatus = _authBloc.state.status;
+    final bool loggedIn =
+        authStatus == AuthStatus.authenticated ||
+        authStatus == AuthStatus.profileIncomplete;
+    final bool needsProfileCompletion =
+        authStatus == AuthStatus.profileIncomplete;
     final bool isOnPreview = state.matchedLocation == '/ui-preview';
     final bool isOnLogin = state.matchedLocation == '/login';
     final bool isOnSignup = state.matchedLocation == '/signup';
+    final bool isOnProfileCompletion =
+        state.matchedLocation == '/complete-profile';
 
     if (isOnPreview) {
       return null;
     }
+    if (needsProfileCompletion && !isOnProfileCompletion) {
+      return '/complete-profile';
+    }
     if (!loggedIn && !isOnLogin && !isOnSignup) {
       return '/login';
     }
-    if (loggedIn && (isOnLogin || isOnSignup)) {
+    if (loggedIn && !needsProfileCompletion && isOnProfileCompletion) {
       return '/home';
+    }
+    if (loggedIn && (isOnLogin || isOnSignup)) {
+      return needsProfileCompletion ? '/complete-profile' : '/home';
     }
     return null;
   }

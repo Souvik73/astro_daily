@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../core/config/auth_environment.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/widgets/astro_backdrop.dart';
+import 'auth_provider_visibility.dart';
 import '../bloc/login_form_cubit.dart';
 
 class LoginPage extends StatefulWidget {
@@ -35,9 +38,7 @@ class _LoginPageBody extends StatefulWidget {
 
 class _LoginPageBodyState extends State<_LoginPageBody> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController(
-    text: 'seeker@astrodaily.app',
-  );
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TapGestureRecognizer _termsTapRecognizer = TapGestureRecognizer();
   final TapGestureRecognizer _privacyTapRecognizer = TapGestureRecognizer();
@@ -89,6 +90,18 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final bool showGoogleAuthButton = shouldShowGoogleAuthButton(
+      googleServerClientId: AuthEnvironment.googleServerClientId,
+      googleIosClientId: AuthEnvironment.googleIosClientId,
+      googleMacosSignInEnabled: AuthEnvironment.googleMacosSignInEnabled,
+      isWeb: kIsWeb,
+      targetPlatform: defaultTargetPlatform,
+    );
+    final bool showAppleAuthButton = shouldShowAppleAuthButton(
+      appleSignInEnabled: AuthEnvironment.appleSignInEnabled,
+      isWeb: kIsWeb,
+      targetPlatform: defaultTargetPlatform,
+    );
 
     return BlocListener<LoginFormCubit, LoginFormState>(
       listenWhen: (LoginFormState previous, LoginFormState current) =>
@@ -168,7 +181,9 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                             border: Border.all(color: AppTheme.border),
                             boxShadow: <BoxShadow>[
                               BoxShadow(
-                                color: AppTheme.midnight.withValues(alpha: 0.06),
+                                color: AppTheme.midnight.withValues(
+                                  alpha: 0.06,
+                                ),
                                 blurRadius: 24,
                                 offset: const Offset(0, 14),
                               ),
@@ -195,43 +210,51 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                 ),
                                 const SizedBox(height: 18),
                                 BlocBuilder<LoginFormCubit, LoginFormState>(
-                                  builder: (
-                                    BuildContext context,
-                                    LoginFormState state,
-                                  ) {
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: <Widget>[
-                                        OutlinedButton.icon(
-                                          onPressed: state.isSubmitting
-                                              ? null
-                                              : _submitGoogle,
-                                          icon: const Icon(
-                                            Icons.g_mobiledata_rounded,
-                                          ),
-                                          label: const Text(
-                                            'Continue with Google',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        OutlinedButton.icon(
-                                          onPressed: state.isSubmitting
-                                              ? null
-                                              : _submitApple,
-                                          style: OutlinedButton.styleFrom(
-                                            backgroundColor: AppTheme.midnight,
-                                            foregroundColor: Colors.white,
-                                            side: BorderSide.none,
-                                          ),
-                                          icon: const Icon(Icons.apple),
-                                          label: const Text(
-                                            'Continue with Apple',
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                  builder:
+                                      (
+                                        BuildContext context,
+                                        LoginFormState state,
+                                      ) {
+                                        return Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: <Widget>[
+                                            if (showGoogleAuthButton)
+                                              OutlinedButton.icon(
+                                                onPressed: state.isSubmitting
+                                                    ? null
+                                                    : _submitGoogle,
+                                                icon: const Icon(
+                                                  Icons.g_mobiledata_rounded,
+                                                ),
+                                                label: const Text(
+                                                  'Continue with Google',
+                                                ),
+                                              ),
+                                            if (showAppleAuthButton) ...<
+                                              Widget
+                                            >[
+                                              if (showGoogleAuthButton)
+                                                const SizedBox(height: 10),
+                                              OutlinedButton.icon(
+                                                onPressed: state.isSubmitting
+                                                    ? null
+                                                    : _submitApple,
+                                                style: OutlinedButton.styleFrom(
+                                                  backgroundColor:
+                                                      AppTheme.midnight,
+                                                  foregroundColor: Colors.white,
+                                                  side: BorderSide.none,
+                                                ),
+                                                icon: const Icon(Icons.apple),
+                                                label: const Text(
+                                                  'Continue with Apple',
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        );
+                                      },
                                 ),
                                 const SizedBox(height: 18),
                                 const _InlineDivider(label: 'or use email'),
@@ -242,7 +265,7 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                   keyboardType: TextInputType.emailAddress,
                                   decoration: const InputDecoration(
                                     labelText: 'Email',
-                                    hintText: 'you@example.com',
+                                    hintText: 'seeker@astrodaily.app',
                                   ),
                                   validator: (String? value) {
                                     final String email = value?.trim() ?? '';
@@ -272,47 +295,54 @@ class _LoginPageBodyState extends State<_LoginPageBody> {
                                 ),
                                 const SizedBox(height: 16),
                                 BlocBuilder<LoginFormCubit, LoginFormState>(
-                                  builder: (
-                                    BuildContext context,
-                                    LoginFormState state,
-                                  ) {
-                                    return DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        gradient: AppTheme.heroGradient,
-                                        borderRadius: BorderRadius.circular(22),
-                                        boxShadow: <BoxShadow>[
-                                          BoxShadow(
-                                            color: AppTheme.coral.withValues(
-                                              alpha: 0.22,
+                                  builder:
+                                      (
+                                        BuildContext context,
+                                        LoginFormState state,
+                                      ) {
+                                        return DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: AppTheme.heroGradient,
+                                            borderRadius: BorderRadius.circular(
+                                              22,
                                             ),
-                                            blurRadius: 18,
-                                            offset: const Offset(0, 12),
+                                            boxShadow: <BoxShadow>[
+                                              BoxShadow(
+                                                color: AppTheme.coral
+                                                    .withValues(alpha: 0.22),
+                                                blurRadius: 18,
+                                                offset: const Offset(0, 12),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                      child: FilledButton(
-                                        key: const Key('login_continue_button'),
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: Colors.transparent,
-                                          shadowColor: Colors.transparent,
-                                        ),
-                                        onPressed: state.isSubmitting
-                                            ? null
-                                            : _submitEmail,
-                                        child: state.isSubmitting
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2.2,
-                                                      color: Colors.white,
-                                                    ),
-                                              )
-                                            : const Text('Continue with Email'),
-                                      ),
-                                    );
-                                  },
+                                          child: FilledButton(
+                                            key: const Key(
+                                              'login_continue_button',
+                                            ),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              shadowColor: Colors.transparent,
+                                            ),
+                                            onPressed: state.isSubmitting
+                                                ? null
+                                                : _submitEmail,
+                                            child: state.isSubmitting
+                                                ? const SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2.2,
+                                                          color: Colors.white,
+                                                        ),
+                                                  )
+                                                : const Text(
+                                                    'Continue with Email',
+                                                  ),
+                                          ),
+                                        );
+                                      },
                                 ),
                                 const SizedBox(height: 14),
                                 Row(
@@ -426,9 +456,9 @@ class _HeroChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: Colors.white,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: Colors.white),
       ),
     );
   }

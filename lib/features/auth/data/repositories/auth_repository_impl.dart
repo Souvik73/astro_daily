@@ -59,6 +59,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> completeProfile(AuthProfile profile) {
+    return _localDataSource.completeProfile(profile);
+  }
+
+  @override
   Future<void> updateSubscriptionTier(SubscriptionTier tier) {
     return _localDataSource.updateSubscriptionTier(tier);
   }

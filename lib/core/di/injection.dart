@@ -8,9 +8,11 @@ import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/bloc/login_form_cubit.dart';
+import '../../features/auth/bloc/profile_completion_cubit.dart';
 import '../../features/auth/bloc/signup_form_cubit.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart'
     as auth_contract;
+import '../../features/auth/domain/usecases/complete_profile.dart';
 import '../../features/auth/domain/usecases/get_current_user.dart';
 import '../../features/auth/domain/usecases/observe_auth_state.dart';
 import '../../features/auth/domain/usecases/sign_in_with_apple.dart';
@@ -99,6 +101,8 @@ Future<void> initDependencies({bool reset = false}) async {
       googleIosClientId: AuthEnvironment.googleIosClientId,
       appleWebClientId: AuthEnvironment.appleWebClientId,
       appleWebRedirectUrl: AuthEnvironment.appleWebRedirectUrl,
+      supabaseProfileTablesEnabled:
+          AuthEnvironment.supabaseProfileTablesEnabled,
     ),
     dispose: (AuthLocalDataSource source) => source.dispose(),
   );
@@ -127,6 +131,9 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<SignOut>(
     () => SignOut(sl<auth_contract.AuthRepository>()),
   );
+  sl.registerLazySingleton<CompleteProfile>(
+    () => CompleteProfile(sl<auth_contract.AuthRepository>()),
+  );
   sl.registerLazySingleton<UpdateSubscriptionTier>(
     () => UpdateSubscriptionTier(sl<auth_contract.AuthRepository>()),
   );
@@ -154,6 +161,9 @@ Future<void> initDependencies({bool reset = false}) async {
       signInWithGoogle: sl<SignInWithGoogle>(),
       signInWithApple: sl<SignInWithApple>(),
     ),
+  );
+  sl.registerFactory<ProfileCompletionCubit>(
+    () => ProfileCompletionCubit(completeProfile: sl<CompleteProfile>()),
   );
 
   sl.registerLazySingleton<UsagePolicy>(
@@ -350,6 +360,7 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<AppRouter>(
     () => AppRouter(
       authBloc: sl<AuthBloc>(),
+      profileCompletionCubitFactory: () => sl<ProfileCompletionCubit>(),
       dailyHoroscopeBlocFactory: () => sl<DailyHoroscopeBloc>(),
       homeCubitFactory: () => sl<HomeCubit>(),
       kundliCubitFactory: () => sl<KundliCubit>(),

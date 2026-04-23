@@ -15,5 +15,6 @@ abstract class AuthRepository {
   Future<void> signInWithGoogle({AuthProfile? profile});
   Future<void> signInWithApple({AuthProfile? profile});
   Future<void> signOut();
+  Future<void> completeProfile(AuthProfile profile);
   Future<void> updateSubscriptionTier(SubscriptionTier tier);
 }

@@ -1,5 +1,6 @@
 import 'package:astro_daily/core/error/failures.dart';
 import 'package:astro_daily/core/models/astro_models.dart';
+import 'package:astro_daily/core/models/birth_profile.dart';
 import 'package:astro_daily/core/models/subscription_models.dart';
 import 'package:astro_daily/features/auth/domain/entities/auth_profile.dart';
 import 'package:astro_daily/features/auth/domain/entities/user.dart';
@@ -31,11 +32,13 @@ void main() {
       id: 'u_1',
       email: 'pilot@astro.app',
       displayName: 'pilot',
-      zodiacSign: 'Aries',
-      dateOfBirth: DateTime(1998, 4, 10),
-      timeOfBirth: '06:30',
-      placeOfBirth: 'Kolkata, India',
       tier: SubscriptionTier.free,
+      birthProfile: _birthProfile(
+        zodiacSign: 'Aries',
+        dateOfBirth: DateTime(1998, 4, 10),
+        timeOfBirth: '06:30',
+        placeOfBirth: 'Kolkata, India',
+      ),
     );
 
     final result = await useCase(
@@ -56,11 +59,13 @@ void main() {
       id: 'u_2',
       email: 'hindi@astro.app',
       displayName: 'hindi',
-      zodiacSign: 'Aries',
-      dateOfBirth: DateTime(1997, 11, 12),
-      timeOfBirth: '07:10',
-      placeOfBirth: 'Delhi, India',
       tier: SubscriptionTier.free,
+      birthProfile: _birthProfile(
+        zodiacSign: 'Aries',
+        dateOfBirth: DateTime(1997, 11, 12),
+        timeOfBirth: '07:10',
+        placeOfBirth: 'Delhi, India',
+      ),
     );
 
     await useCase(
@@ -142,6 +147,9 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> signOut() async {}
 
   @override
+  Future<void> completeProfile(AuthProfile profile) async {}
+
+  @override
   Future<void> signUpWithEmail({
     required String email,
     required String password,
@@ -150,4 +158,18 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> updateSubscriptionTier(SubscriptionTier tier) async {}
+}
+
+BirthProfile _birthProfile({
+  required String zodiacSign,
+  required DateTime dateOfBirth,
+  required String timeOfBirth,
+  required String placeOfBirth,
+}) {
+  return BirthProfile(
+    zodiacSign: zodiacSign,
+    dateOfBirth: dateOfBirth,
+    timeOfBirth: timeOfBirth,
+    placeOfBirth: placeOfBirth,
+  );
 }

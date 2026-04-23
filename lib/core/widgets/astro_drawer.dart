@@ -127,8 +127,8 @@ class AstroDrawer extends StatelessWidget {
   }
 
   void _navigate(BuildContext context, String route) {
-    Navigator.of(context).pop();
-    context.go(route);
+    // Navigator.of(context).pop();
+    context.push(route);
   }
 }
 

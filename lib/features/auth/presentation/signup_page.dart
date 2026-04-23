@@ -1,11 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../core/config/auth_environment.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/models/birth_profile.dart';
 import '../../../core/widgets/astro_backdrop.dart';
 import '../../../core/widgets/astro_page_components.dart';
+import 'auth_provider_visibility.dart';
 import '../bloc/signup_form_cubit.dart';
 import '../bloc/signup_form_state.dart';
 import '../domain/entities/auth_profile.dart';
@@ -101,7 +105,7 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
       return;
     }
 
-    final String formattedTime = picked.format(context);
+    final String formattedTime = _formatTime(picked);
     context.read<SignupFormCubit>().onTimeOfBirthSelected(formattedTime);
     _timeOfBirthController.text = formattedTime;
   }
@@ -165,16 +169,36 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
   AuthProfile _buildProfile() {
     return AuthProfile(
       displayName: _nameController.text.trim(),
-      zodiacSign: _zodiacController.text.trim(),
-      dateOfBirth: context.read<SignupFormCubit>().state.dateOfBirth!,
-      timeOfBirth: _timeOfBirthController.text.trim(),
-      placeOfBirth: _placeOfBirthController.text.trim(),
+      birthProfile: BirthProfile(
+        zodiacSign: _zodiacController.text.trim(),
+        dateOfBirth: context.read<SignupFormCubit>().state.dateOfBirth!,
+        timeOfBirth: _timeOfBirthController.text.trim(),
+        placeOfBirth: _placeOfBirthController.text.trim(),
+      ),
     );
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final String hour = time.hour.toString().padLeft(2, '0');
+    final String minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final bool showGoogleAuthButton = shouldShowGoogleAuthButton(
+      googleServerClientId: AuthEnvironment.googleServerClientId,
+      googleIosClientId: AuthEnvironment.googleIosClientId,
+      googleMacosSignInEnabled: AuthEnvironment.googleMacosSignInEnabled,
+      isWeb: kIsWeb,
+      targetPlatform: defaultTargetPlatform,
+    );
+    final bool showAppleAuthButton = shouldShowAppleAuthButton(
+      appleSignInEnabled: AuthEnvironment.appleSignInEnabled,
+      isWeb: kIsWeb,
+      targetPlatform: defaultTargetPlatform,
+    );
 
     return BlocListener<SignupFormCubit, SignupFormState>(
       listener: (BuildContext context, SignupFormState state) {
@@ -304,15 +328,21 @@ class _SignupPageBodyState extends State<_SignupPageBody> {
                                     });
                                   },
                                   onEmailSubmit: _submitEmail,
-                                  onGoogleSubmit: _submitGoogle,
-                                  onAppleSubmit: _submitApple,
+                                  onGoogleSubmit: showGoogleAuthButton
+                                      ? _submitGoogle
+                                      : null,
+                                  onAppleSubmit: showAppleAuthButton
+                                      ? _submitApple
+                                      : null,
                                 ),
                         ),
                         const SizedBox(height: 16),
                         Center(
                           child: TextButton(
                             onPressed: () => context.go('/login'),
-                            child: const Text('Already have an account? Sign in'),
+                            child: const Text(
+                              'Already have an account? Sign in',
+                            ),
                           ),
                         ),
                       ],
@@ -428,8 +458,8 @@ class _BirthStep extends StatelessWidget {
   final VoidCallback onPickTime;
   final VoidCallback onBack;
   final VoidCallback onEmailSubmit;
-  final VoidCallback onGoogleSubmit;
-  final VoidCallback onAppleSubmit;
+  final VoidCallback? onGoogleSubmit;
+  final VoidCallback? onAppleSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -540,22 +570,25 @@ class _BirthStep extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    OutlinedButton.icon(
-                      onPressed: state.isSubmitting ? null : onGoogleSubmit,
-                      icon: const Icon(Icons.g_mobiledata_rounded),
-                      label: const Text('Continue with Google'),
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: state.isSubmitting ? null : onAppleSubmit,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: AppTheme.midnight,
-                        foregroundColor: Colors.white,
-                        side: BorderSide.none,
+                    if (onGoogleSubmit != null)
+                      OutlinedButton.icon(
+                        onPressed: state.isSubmitting ? null : onGoogleSubmit,
+                        icon: const Icon(Icons.g_mobiledata_rounded),
+                        label: const Text('Continue with Google'),
                       ),
-                      icon: const Icon(Icons.apple),
-                      label: const Text('Continue with Apple'),
-                    ),
+                    if (onAppleSubmit != null) ...<Widget>[
+                      if (onGoogleSubmit != null) const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: state.isSubmitting ? null : onAppleSubmit,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AppTheme.midnight,
+                          foregroundColor: Colors.white,
+                          side: BorderSide.none,
+                        ),
+                        icon: const Icon(Icons.apple),
+                        label: const Text('Continue with Apple'),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     const _InlineDivider(label: 'or use email'),
                     const SizedBox(height: 18),
@@ -687,9 +720,9 @@ class _StepPill extends StatelessWidget {
           Expanded(
             child: Text(
               '$stepNumber. $title',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.white,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: Colors.white),
             ),
           ),
         ],

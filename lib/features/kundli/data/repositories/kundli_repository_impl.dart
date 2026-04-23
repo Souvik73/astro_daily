@@ -1,6 +1,7 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/models/astro_models.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../../../auth/domain/mappers/user_birth_details_mapper.dart';
 import '../../domain/entities/kundli_insight.dart';
 import '../../domain/repositories/kundli_repository.dart';
 import '../datasources/kundli_remote_data_source.dart';
@@ -14,6 +15,8 @@ class KundliRepositoryImpl implements KundliRepository {
 
   final KundliRemoteDataSource _remoteDataSource;
   final AuthRepository _authRepository;
+  static const UserBirthDetailsMapper _birthDetailsMapper =
+      UserBirthDetailsMapper();
 
   @override
   Future<KundliInsight> getKundliInsight() async {
@@ -23,11 +26,7 @@ class KundliRepositoryImpl implements KundliRepository {
     }
 
     final KundliData data = await _remoteDataSource.getKundli(
-      BirthDetails(
-        dateTime: DateTime(1994, 4, 16, 8, 45),
-        place: 'Kolkata',
-        zodiacSign: user.zodiacSign,
-      ),
+      _birthDetailsMapper.map(user),
     );
 
     return KundliInsight(

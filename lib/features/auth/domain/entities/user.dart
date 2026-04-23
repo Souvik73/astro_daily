@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/models/birth_profile.dart';
 import '../../../../core/models/subscription_models.dart';
 
 class User extends Equatable {
@@ -7,42 +8,48 @@ class User extends Equatable {
     required this.id,
     required this.email,
     required this.displayName,
-    required this.zodiacSign,
-    required this.dateOfBirth,
-    required this.timeOfBirth,
-    required this.placeOfBirth,
     required this.tier,
+    this.birthProfile,
   });
+
+  static const Object _birthProfileSentinel = Object();
 
   final String id;
   final String email;
   final String displayName;
-  final String zodiacSign;
-  final DateTime dateOfBirth;
-  final String timeOfBirth;
-  final String placeOfBirth;
   final SubscriptionTier tier;
+  final BirthProfile? birthProfile;
+
+  bool get needsProfileCompletion => birthProfile == null;
+  String get zodiacSign => _requireBirthProfile().zodiacSign;
+  DateTime get dateOfBirth => _requireBirthProfile().dateOfBirth;
+  String get timeOfBirth => _requireBirthProfile().timeOfBirth;
+  String get placeOfBirth => _requireBirthProfile().placeOfBirth;
 
   User copyWith({
     String? id,
     String? email,
     String? displayName,
-    String? zodiacSign,
-    DateTime? dateOfBirth,
-    String? timeOfBirth,
-    String? placeOfBirth,
     SubscriptionTier? tier,
+    Object? birthProfile = _birthProfileSentinel,
   }) {
     return User(
       id: id ?? this.id,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
-      zodiacSign: zodiacSign ?? this.zodiacSign,
-      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
-      timeOfBirth: timeOfBirth ?? this.timeOfBirth,
-      placeOfBirth: placeOfBirth ?? this.placeOfBirth,
       tier: tier ?? this.tier,
+      birthProfile: identical(birthProfile, _birthProfileSentinel)
+          ? this.birthProfile
+          : birthProfile as BirthProfile?,
     );
+  }
+
+  BirthProfile _requireBirthProfile() {
+    final BirthProfile? value = birthProfile;
+    if (value == null) {
+      throw StateError('Birth details are incomplete for this user.');
+    }
+    return value;
   }
 
   @override
@@ -50,10 +57,7 @@ class User extends Equatable {
     id,
     email,
     displayName,
-    zodiacSign,
-    dateOfBirth,
-    timeOfBirth,
-    placeOfBirth,
     tier,
+    birthProfile,
   ];
 }

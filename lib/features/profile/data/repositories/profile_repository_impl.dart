@@ -15,13 +15,14 @@ class ProfileRepositoryImpl implements ProfileRepository {
     if (user == null) {
       throw const AuthFailure('No active profile.');
     }
+    final birthProfile = user.birthProfile;
+    if (birthProfile == null) {
+      throw const AuthFailure('Complete your profile to continue.');
+    }
     return ProfileData(
       displayName: user.displayName,
       email: user.email,
-      zodiacSign: user.zodiacSign,
-      dateOfBirth: user.dateOfBirth,
-      timeOfBirth: user.timeOfBirth,
-      placeOfBirth: user.placeOfBirth,
+      birthProfile: birthProfile,
       tier: user.tier,
     );
   }

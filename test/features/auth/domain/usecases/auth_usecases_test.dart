@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:astro_daily/core/models/birth_profile.dart';
 import 'package:astro_daily/core/models/subscription_models.dart';
 import 'package:astro_daily/core/usecase/usecase.dart';
 import 'package:astro_daily/features/auth/domain/entities/auth_profile.dart';
@@ -30,11 +31,13 @@ void main() {
         id: 'u_1',
         email: 'pilot@astro.app',
         displayName: 'pilot',
-        zodiacSign: 'Aries',
-        dateOfBirth: DateTime.utc(1998, 4, 10),
-        timeOfBirth: '06:30',
-        placeOfBirth: 'Kolkata, India',
         tier: SubscriptionTier.free,
+        birthProfile: _birthProfile(
+          zodiacSign: 'Aries',
+          dateOfBirth: DateTime.utc(1998, 4, 10),
+          timeOfBirth: '06:30',
+          placeOfBirth: 'Kolkata, India',
+        ),
       ),
     );
 
@@ -72,11 +75,13 @@ void main() {
         id: 'u_2',
         email: 'seeker@astro.app',
         displayName: 'seeker',
-        zodiacSign: 'Aries',
-        dateOfBirth: DateTime.utc(1999, 8, 20),
-        timeOfBirth: '05:45',
-        placeOfBirth: 'Delhi, India',
         tier: SubscriptionTier.free,
+        birthProfile: _birthProfile(
+          zodiacSign: 'Aries',
+          dateOfBirth: DateTime.utc(1999, 8, 20),
+          timeOfBirth: '05:45',
+          placeOfBirth: 'Delhi, India',
+        ),
       ),
     );
 
@@ -93,11 +98,13 @@ void main() {
         id: 'u_3',
         email: 'pro@astro.app',
         displayName: 'pro',
-        zodiacSign: 'Leo',
-        dateOfBirth: DateTime.utc(1995, 7, 25),
-        timeOfBirth: '09:15',
-        placeOfBirth: 'Mumbai, India',
         tier: SubscriptionTier.free,
+        birthProfile: _birthProfile(
+          zodiacSign: 'Leo',
+          dateOfBirth: DateTime.utc(1995, 7, 25),
+          timeOfBirth: '09:15',
+          placeOfBirth: 'Mumbai, India',
+        ),
       ),
     );
 
@@ -139,11 +146,13 @@ class _FakeAuthRepository implements AuthRepository {
       id: 'u_4',
       email: email,
       displayName: email.split('@').first,
-      zodiacSign: 'Aries',
-      dateOfBirth: DateTime(2000, 1, 1),
-      timeOfBirth: '06:00',
-      placeOfBirth: 'Kolkata, India',
       tier: SubscriptionTier.free,
+      birthProfile: _birthProfile(
+        zodiacSign: 'Aries',
+        dateOfBirth: DateTime(2000, 1, 1),
+        timeOfBirth: '06:00',
+        placeOfBirth: 'Kolkata, India',
+      ),
     );
     _currentUser = user;
     _controller.add(user);
@@ -156,11 +165,15 @@ class _FakeAuthRepository implements AuthRepository {
         id: 'u_apple',
         email: 'apple@astro.app',
         displayName: profile?.displayName ?? 'apple',
-        zodiacSign: profile?.zodiacSign ?? 'Aries',
-        dateOfBirth: profile?.dateOfBirth ?? DateTime(2000, 1, 1),
-        timeOfBirth: profile?.timeOfBirth ?? '06:00',
-        placeOfBirth: profile?.placeOfBirth ?? 'Kolkata, India',
         tier: SubscriptionTier.free,
+        birthProfile:
+            profile?.birthProfile ??
+            _birthProfile(
+              zodiacSign: 'Aries',
+              dateOfBirth: DateTime(2000, 1, 1),
+              timeOfBirth: '06:00',
+              placeOfBirth: 'Kolkata, India',
+            ),
       ),
     );
   }
@@ -172,11 +185,29 @@ class _FakeAuthRepository implements AuthRepository {
         id: 'u_google',
         email: 'google@astro.app',
         displayName: profile?.displayName ?? 'google',
-        zodiacSign: profile?.zodiacSign ?? 'Aries',
-        dateOfBirth: profile?.dateOfBirth ?? DateTime(2000, 1, 1),
-        timeOfBirth: profile?.timeOfBirth ?? '06:00',
-        placeOfBirth: profile?.placeOfBirth ?? 'Kolkata, India',
         tier: SubscriptionTier.free,
+        birthProfile:
+            profile?.birthProfile ??
+            _birthProfile(
+              zodiacSign: 'Aries',
+              dateOfBirth: DateTime(2000, 1, 1),
+              timeOfBirth: '06:00',
+              placeOfBirth: 'Kolkata, India',
+            ),
+      ),
+    );
+  }
+
+  @override
+  Future<void> completeProfile(AuthProfile profile) async {
+    final User? user = _currentUser;
+    if (user == null) {
+      return;
+    }
+    seedUser(
+      user.copyWith(
+        displayName: profile.displayName,
+        birthProfile: profile.birthProfile,
       ),
     );
   }
@@ -192,11 +223,8 @@ class _FakeAuthRepository implements AuthRepository {
         id: 'u_signup',
         email: email,
         displayName: profile.displayName,
-        zodiacSign: profile.zodiacSign,
-        dateOfBirth: profile.dateOfBirth,
-        timeOfBirth: profile.timeOfBirth,
-        placeOfBirth: profile.placeOfBirth,
         tier: SubscriptionTier.free,
+        birthProfile: profile.birthProfile,
       ),
     );
   }
@@ -217,4 +245,18 @@ class _FakeAuthRepository implements AuthRepository {
     _currentUser = updated;
     _controller.add(updated);
   }
+}
+
+BirthProfile _birthProfile({
+  required String zodiacSign,
+  required DateTime dateOfBirth,
+  required String timeOfBirth,
+  required String placeOfBirth,
+}) {
+  return BirthProfile(
+    zodiacSign: zodiacSign,
+    dateOfBirth: dateOfBirth,
+    timeOfBirth: timeOfBirth,
+    placeOfBirth: placeOfBirth,
+  );
 }

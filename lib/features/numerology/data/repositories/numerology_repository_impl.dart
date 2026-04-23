@@ -1,6 +1,7 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/models/astro_models.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../../../auth/domain/mappers/user_birth_details_mapper.dart';
 import '../../domain/entities/numerology_insight.dart';
 import '../../domain/repositories/numerology_repository.dart';
 import '../datasources/numerology_remote_data_source.dart';
@@ -14,6 +15,8 @@ class NumerologyRepositoryImpl implements NumerologyRepository {
 
   final NumerologyRemoteDataSource _remoteDataSource;
   final AuthRepository _authRepository;
+  static const UserBirthDetailsMapper _birthDetailsMapper =
+      UserBirthDetailsMapper();
 
   @override
   Future<NumerologyInsight> getNumerologyInsight() async {
@@ -23,11 +26,7 @@ class NumerologyRepositoryImpl implements NumerologyRepository {
     }
 
     final NumerologyResult result = await _remoteDataSource.getNumerology(
-      BirthDetails(
-        dateTime: DateTime(1994, 4, 16, 8, 45),
-        place: 'Kolkata',
-        zodiacSign: user.zodiacSign,
-      ),
+      _birthDetailsMapper.map(user),
     );
 
     return NumerologyInsight(

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:astro_daily/core/models/birth_profile.dart';
 import 'package:astro_daily/core/models/subscription_models.dart';
 import 'package:astro_daily/features/auth/bloc/auth_bloc.dart';
 import 'package:astro_daily/features/auth/domain/entities/auth_profile.dart';
@@ -41,11 +42,13 @@ void main() {
         id: 'u_1',
         email: 'pilot@astro.app',
         displayName: 'pilot',
-        zodiacSign: 'Aries',
-        dateOfBirth: DateTime.utc(1998, 4, 10),
-        timeOfBirth: '06:30',
-        placeOfBirth: 'Kolkata, India',
         tier: SubscriptionTier.free,
+        birthProfile: _birthProfile(
+          zodiacSign: 'Aries',
+          dateOfBirth: DateTime.utc(1998, 4, 10),
+          timeOfBirth: '06:30',
+          placeOfBirth: 'Kolkata, India',
+        ),
       ),
     );
     await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -54,17 +57,34 @@ void main() {
     expect(authBloc.state.user?.email, 'pilot@astro.app');
   });
 
+  test('moves to profile incomplete when birth details are missing', () async {
+    authRepository.seedUser(
+      const User(
+        id: 'u_incomplete',
+        email: 'pilot@astro.app',
+        displayName: 'pilot',
+        tier: SubscriptionTier.free,
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(authBloc.state.status, AuthStatus.profileIncomplete);
+    expect(authBloc.state.user?.needsProfileCompletion, isTrue);
+  });
+
   test('returns to unauthenticated after sign out', () async {
     authRepository.seedUser(
       User(
         id: 'u_2',
         email: 'pilot@astro.app',
         displayName: 'pilot',
-        zodiacSign: 'Aries',
-        dateOfBirth: DateTime.utc(1998, 4, 10),
-        timeOfBirth: '06:30',
-        placeOfBirth: 'Kolkata, India',
         tier: SubscriptionTier.free,
+        birthProfile: _birthProfile(
+          zodiacSign: 'Aries',
+          dateOfBirth: DateTime.utc(1998, 4, 10),
+          timeOfBirth: '06:30',
+          placeOfBirth: 'Kolkata, India',
+        ),
       ),
     );
     await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -81,11 +101,13 @@ void main() {
         id: 'u_3',
         email: 'pilot@astro.app',
         displayName: 'pilot',
-        zodiacSign: 'Aries',
-        dateOfBirth: DateTime.utc(1998, 4, 10),
-        timeOfBirth: '06:30',
-        placeOfBirth: 'Kolkata, India',
         tier: SubscriptionTier.free,
+        birthProfile: _birthProfile(
+          zodiacSign: 'Aries',
+          dateOfBirth: DateTime.utc(1998, 4, 10),
+          timeOfBirth: '06:30',
+          placeOfBirth: 'Kolkata, India',
+        ),
       ),
     );
     await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -141,6 +163,9 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> completeProfile(AuthProfile profile) async {}
+
+  @override
   Future<void> signUpWithEmail({
     required String email,
     required String password,
@@ -155,4 +180,18 @@ class _FakeAuthRepository implements AuthRepository {
     }
     seedUser(user.copyWith(tier: tier));
   }
+}
+
+BirthProfile _birthProfile({
+  required String zodiacSign,
+  required DateTime dateOfBirth,
+  required String timeOfBirth,
+  required String placeOfBirth,
+}) {
+  return BirthProfile(
+    zodiacSign: zodiacSign,
+    dateOfBirth: dateOfBirth,
+    timeOfBirth: timeOfBirth,
+    placeOfBirth: placeOfBirth,
+  );
 }

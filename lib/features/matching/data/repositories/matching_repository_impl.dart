@@ -1,5 +1,8 @@
 import '../../../../core/error/failures.dart';
+import '../../../../core/mappers/birth_details_mapper.dart';
 import '../../../../core/models/astro_models.dart';
+import '../../../../core/models/birth_profile.dart';
+import '../../../auth/domain/mappers/user_birth_details_mapper.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/entities/matching_result.dart';
 import '../../domain/repositories/matching_repository.dart';
@@ -12,8 +15,18 @@ class MatchingRepositoryImpl implements MatchingRepository {
   }) : _remoteDataSource = remoteDataSource,
        _authRepository = authRepository;
 
+  static final BirthProfile _placeholderPartnerBirthProfile = BirthProfile(
+    zodiacSign: 'Libra',
+    dateOfBirth: DateTime(1995, 12, 5),
+    timeOfBirth: '18:10',
+    placeOfBirth: 'Mumbai',
+  );
+
   final MatchingRemoteDataSource _remoteDataSource;
   final AuthRepository _authRepository;
+  static const UserBirthDetailsMapper _userBirthDetailsMapper =
+      UserBirthDetailsMapper();
+  static const BirthDetailsMapper _birthDetailsMapper = BirthDetailsMapper();
 
   @override
   Future<MatchingResult> getMatchingResult() async {
@@ -24,16 +37,8 @@ class MatchingRepositoryImpl implements MatchingRepository {
 
     final CompatibilityResult result = await _remoteDataSource.getCompatibility(
       CompatibilityRequest(
-        primary: BirthDetails(
-          dateTime: DateTime(1994, 4, 16, 8, 45),
-          place: 'Kolkata',
-          zodiacSign: user.zodiacSign,
-        ),
-        partner: BirthDetails(
-          dateTime: DateTime(1995, 12, 5, 18, 10),
-          place: 'Mumbai',
-          zodiacSign: 'Libra',
-        ),
+        primary: _userBirthDetailsMapper.map(user),
+        partner: _birthDetailsMapper.map(_placeholderPartnerBirthProfile),
       ),
     );
 

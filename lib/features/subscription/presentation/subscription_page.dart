@@ -133,7 +133,8 @@ class SubscriptionPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   _PlanCard(
                     title: 'Premium Yearly',
-                    note: 'Best value for long-term consistency and calm access.',
+                    note:
+                        'Best value for long-term consistency and calm access.',
                     priceLabel: 'Yearly',
                     ctaLabel: isPremium ? 'Current plan' : 'Start Yearly Plan',
                     accent: AppTheme.teal,
@@ -212,9 +213,9 @@ class _PlanBadge extends StatelessWidget {
         children: <Widget>[
           Text(
             title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 4),
           Text(
@@ -304,7 +305,9 @@ class _PlanCard extends StatelessWidget {
           color: highlighted ? accent.withValues(alpha: 0.08) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: highlighted ? accent.withValues(alpha: 0.4) : AppTheme.border,
+            color: highlighted
+                ? accent.withValues(alpha: 0.4)
+                : AppTheme.border,
           ),
         ),
         child: Padding(
@@ -322,9 +325,9 @@ class _PlanCard extends StatelessWidget {
                   ),
                   Text(
                     priceLabel,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: accent,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelMedium?.copyWith(color: accent),
                   ),
                 ],
               ),
