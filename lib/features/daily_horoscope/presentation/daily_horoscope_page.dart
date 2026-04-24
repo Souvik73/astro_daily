@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/widgets/astro_backdrop.dart';
 import '../bloc/daily_horoscope_bloc.dart';
+import '../../horoscope_chat/presentation/horoscope_chat_sheet.dart';
 
 class DailyHoroscopePage extends StatelessWidget {
   const DailyHoroscopePage({super.key});
@@ -25,7 +26,7 @@ class DailyHoroscopePage extends StatelessWidget {
               if (state.status == DailyHoroscopeStatus.failure) {
                 return _ErrorPanel(
                   message:
-                      state.errorMessage ?? 'Unable to load today’s report.',
+                      state.errorMessage ?? 'Unable to load today\'s report.',
                   onRetry: () => context.read<DailyHoroscopeBloc>().add(
                     DailyHoroscopeRequested(
                       locale: locale,
@@ -132,61 +133,84 @@ class DailyHoroscopePage extends StatelessWidget {
                       action: '3 free questions/day',
                     ),
                     const SizedBox(height: 12),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Expanded(
-                                  child: _ChatBubble(
-                                    message: 'Should I wear red today?',
-                                    fill: const Color(0xFFF2E7DA),
-                                    textColor: AppTheme.ink,
+                    GestureDetector(
+                      onTap: () => HoroscopeChatSheet.show(
+                        context,
+                        horoscope: horoscope,
+                        locale: locale,
+                      ),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Expanded(
+                                    child: _ChatBubble(
+                                      message: 'Should I wear red today?',
+                                      fill: const Color(0xFFF2E7DA),
+                                      textColor: AppTheme.ink,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: _ChatBubble(
-                                message:
-                                    'Yes, but keep the rest of the look neutral. It matches today’s visibility theme without getting too loud.',
-                                fill: AppTheme.midnight,
-                                textColor: Colors.white,
+                                  const SizedBox(width: 16),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: <Widget>[
-                                _SuggestionChip(
-                                  label: 'Ask about work',
-                                  onTap: () => _showChatComingSoon(context),
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: _ChatBubble(
+                                  message:
+                                      'Yes, but keep the rest of the look neutral. It matches today\'s visibility theme without getting too loud.',
+                                  fill: AppTheme.midnight,
+                                  textColor: Colors.white,
                                 ),
-                                _SuggestionChip(
-                                  label: 'Ask about love',
-                                  onTap: () => _showChatComingSoon(context),
-                                ),
-                                _SuggestionChip(
-                                  label: 'Reward +3',
-                                  onTap: () => _showChatComingSoon(context),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                              const SizedBox(height: 14),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: <Widget>[
+                                  _SuggestionChip(
+                                    label: 'Ask about work',
+                                    onTap: () => HoroscopeChatSheet.show(
+                                      context,
+                                      horoscope: horoscope,
+                                      locale: locale,
+                                      initialQuestion:
+                                          'What does today look like for work?',
+                                    ),
+                                  ),
+                                  _SuggestionChip(
+                                    label: 'Ask about love',
+                                    onTap: () => HoroscopeChatSheet.show(
+                                      context,
+                                      horoscope: horoscope,
+                                      locale: locale,
+                                      initialQuestion:
+                                          'What does today look like for love?',
+                                    ),
+                                  ),
+                                  _SuggestionChip(
+                                    label: 'Open chat',
+                                    onTap: () => HoroscopeChatSheet.show(
+                                      context,
+                                      horoscope: horoscope,
+                                      locale: locale,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     _SectionHeader(
-                      title: 'Do / Don’t',
+                      title: 'Do / Don\'t',
                       action: 'Grounded cues',
                     ),
                     const SizedBox(height: 12),
@@ -194,7 +218,7 @@ class DailyHoroscopePage extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _InsightRow(
-                          title: index.isEven ? 'Do' : 'Don’t',
+                          title: index.isEven ? 'Do' : 'Don\'t',
                           body: horoscope.dosDonts[index],
                           accent: index.isEven ? AppTheme.teal : AppTheme.coral,
                           icon: index.isEven
@@ -210,16 +234,6 @@ class DailyHoroscopePage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _showChatComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Horoscope Companion chat UI is staged next.'),
-        ),
-      );
   }
 
   String _monthLabel(int month) {

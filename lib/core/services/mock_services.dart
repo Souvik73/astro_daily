@@ -192,6 +192,51 @@ class LocalTemplateAiPersonalizer implements AiPersonalizer {
       "Don't: Overbook your evening with low-priority tasks.",
     ];
   }
+
+  @override
+  Future<String> answerHoroscopeQuestion(
+    String question, {
+    required HoroscopeResponse horoscope,
+    required String locale,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    final String q = question.toLowerCase();
+    final String sign = horoscope.zodiacSign;
+
+    final String answer;
+    if (q.contains('work') || q.contains('career') || q.contains('job')) {
+      answer = _workAnswer(sign, horoscope.summary);
+    } else if (q.contains('love') ||
+        q.contains('relationship') ||
+        q.contains('partner') ||
+        q.contains('romance')) {
+      answer = _loveAnswer(sign, horoscope.summary);
+    } else if (q.contains('lucky') ||
+        q.contains('color') ||
+        q.contains('colour') ||
+        q.contains('number')) {
+      answer =
+          'Your lucky color is ${horoscope.luckyColor} and lucky number is '
+          '${horoscope.luckyNumber}. Wearing or using these today can subtly '
+          'reinforce the energy of your reading.';
+    } else {
+      answer =
+          'Today\'s reading for $sign: ${horoscope.summary} Keep that in '
+          'mind as you navigate the day.';
+    }
+
+    return answer;
+  }
+
+  String _workAnswer(String sign, String summary) =>
+      'On the work front, $sign energy today favors focused execution over '
+      'multitasking. $summary Apply that directly to your most important task '
+      'and defer low-priority meetings where possible.';
+
+  String _loveAnswer(String sign, String summary) =>
+      'In relationships, $sign tends to do best today by being direct about '
+      'needs rather than hinting. $summary That same clarity carries into how '
+      'you connect with people close to you.';
 }
 
 class MockBillingGateway implements BillingGateway {

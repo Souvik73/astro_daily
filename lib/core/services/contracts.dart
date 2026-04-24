@@ -84,6 +84,12 @@ abstract class AiPersonalizer {
     HoroscopeResponse horoscope, {
     required String locale,
   });
+
+  Future<String> answerHoroscopeQuestion(
+    String question, {
+    required HoroscopeResponse horoscope,
+    required String locale,
+  });
 }
 
 abstract class BillingGateway {

@@ -26,6 +26,11 @@ import '../../features/daily_horoscope/data/repositories/daily_horoscope_reposit
 import '../../features/daily_horoscope/domain/repositories/daily_horoscope_repository.dart';
 import '../../features/daily_horoscope/domain/usecases/get_personalized_daily_horoscope.dart';
 import '../../features/daily_horoscope/presentation/bloc/daily_horoscope_bloc.dart';
+import '../../features/horoscope_chat/data/datasources/horoscope_chat_data_source.dart';
+import '../../features/horoscope_chat/data/repositories/horoscope_chat_repository_impl.dart';
+import '../../features/horoscope_chat/domain/repositories/horoscope_chat_repository.dart';
+import '../../features/horoscope_chat/domain/usecases/send_horoscope_message.dart';
+import '../../features/horoscope_chat/presentation/bloc/horoscope_chat_bloc.dart';
 import '../../features/gemstones/data/datasources/gemstones_remote_data_source.dart';
 import '../../features/gemstones/data/repositories/gemstones_repository_impl.dart';
 import '../../features/gemstones/domain/repositories/gemstones_repository.dart';
@@ -193,6 +198,26 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerFactory<DailyHoroscopeBloc>(
     () => DailyHoroscopeBloc(
       getPersonalizedDailyHoroscope: sl<GetPersonalizedDailyHoroscope>(),
+    ),
+  );
+
+  sl.registerLazySingleton<HoroscopeChatDataSource>(
+    () => HoroscopeChatDataSourceImpl(aiPersonalizer: sl<AiPersonalizer>()),
+  );
+  sl.registerLazySingleton<HoroscopeChatRepository>(
+    () => HoroscopeChatRepositoryImpl(
+      dataSource: sl<HoroscopeChatDataSource>(),
+      authRepository: sl<auth_contract.AuthRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<SendHoroscopeMessage>(
+    () => SendHoroscopeMessage(sl<HoroscopeChatRepository>()),
+  );
+  sl.registerFactory<HoroscopeChatBloc>(
+    () => HoroscopeChatBloc(
+      sendHoroscopeMessage: sl<SendHoroscopeMessage>(),
+      usagePolicy: sl<UsagePolicy>(),
+      authRepository: sl<auth_contract.AuthRepository>(),
     ),
   );
 
