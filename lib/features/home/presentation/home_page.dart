@@ -9,6 +9,7 @@ import '../../../core/widgets/astro_backdrop.dart';
 import '../../../core/widgets/astro_drawer.dart';
 import '../../../core/widgets/feature_card.dart';
 import '../../auth/domain/entities/user.dart';
+import '../domain/entities/feature_access_decision.dart';
 import '../domain/entities/home_feature_usage.dart';
 import 'cubit/home_cubit.dart';
 
@@ -50,6 +51,13 @@ class HomePage extends StatelessWidget {
       subtitle: 'Rule-based gemstone recommendations with soft guidance.',
       icon: Icons.diamond_outlined,
       route: '/gemstones',
+    ),
+    _FeatureItem(
+      feature: AppFeature.horoscopeChat,
+      title: 'Horoscope Companion',
+      subtitle: 'Ask sign-aware questions with a grounded, rule-backed voice.',
+      icon: Icons.chat_bubble_outline_rounded,
+      route: '/horoscope-chat',
     ),
   ];
 
@@ -117,16 +125,22 @@ class HomePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         for (final _FeatureItem item in _features) ...<Widget>[
-                          FeatureCard(
-                            icon: item.icon,
-                            title: item.title,
-                            subtitle: item.subtitle,
-                            usageLabel: _usageLabel(
-                              usage: state.usageFor(item.feature),
-                              isPremium: isPremium,
-                            ),
-                            isLocked: !state.usageFor(item.feature).canUse,
-                            onTap: () => _openFeature(context, item),
+                          Builder(
+                            builder: (BuildContext cardContext) {
+                              final HomeFeatureUsage usage =
+                                  state.usageFor(item.feature);
+                              return FeatureCard(
+                                icon: item.icon,
+                                title: item.title,
+                                subtitle: item.subtitle,
+                                usageLabel: _usageLabel(
+                                  usage: usage,
+                                  isPremium: isPremium,
+                                ),
+                                isLocked: !usage.canOpen,
+                                onTap: () => _openFeature(context, item),
+                              );
+                            },
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -148,32 +162,101 @@ class HomePage extends StatelessWidget {
     required HomeFeatureUsage usage,
     required bool isPremium,
   }) {
-    if (isPremium) {
-      return 'Ad-free';
+    if (usage.isUnlimited) {
+      return isPremium ? 'Ad-free' : 'Unlimited';
     }
-    return '${usage.usedToday}/${usage.dailyQuota} free';
+    if (isPremium) {
+      return '${usage.used}/${usage.quota} today';
+    }
+    final String suffix = _periodSuffix(usage.period);
+    return '${usage.used}/${usage.quota} $suffix';
+  }
+
+  String _periodSuffix(QuotaPeriod period) {
+    switch (period) {
+      case QuotaPeriod.daily:
+        return 'today';
+      case QuotaPeriod.weekly:
+        return 'this week';
+      case QuotaPeriod.oneTimePerUser:
+        return 'used';
+    }
   }
 
   Future<void> _openFeature(BuildContext context, _FeatureItem item) async {
     final HomeCubit cubit = context.read<HomeCubit>();
-    final decision = await cubit.openFeature(item.feature);
+    final FeatureAccessDecision decision = await cubit.openFeature(item.feature);
     if (!context.mounted) {
       return;
     }
-    if (!decision.canOpen) {
-      showModalBottomSheet<void>(
-        context: context,
-        backgroundColor: Colors.transparent,
-        builder: (BuildContext sheetContext) => _SoftUnlockSheet(
-          onViewPlans: () {
-            Navigator.of(sheetContext).pop();
-            context.push('/subscription');
-          },
-        ),
-      );
-      return;
+    switch (decision.access) {
+      case FeatureAccess.open:
+        context.push(item.route);
+        return;
+      case FeatureAccess.rewardUnlockAvailable:
+        await _showRewardedUnlockSheet(context, item, decision);
+        return;
+      case FeatureAccess.premiumRequired:
+        await _showPremiumSheet(context, decision);
+        return;
     }
-    context.push(item.route);
+  }
+
+  Future<void> _showRewardedUnlockSheet(
+    BuildContext context,
+    _FeatureItem item,
+    FeatureAccessDecision decision,
+  ) async {
+    final HomeCubit cubit = context.read<HomeCubit>();
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext sheetContext) => _RewardedUnlockSheet(
+        title: item.title,
+        message: decision.message ??
+            'Free quota reached. Watch a short ad to unlock more.',
+        onWatchAd: () async {
+          // TODO(ads): wire to `AdGateway.showRewardedAd` and only call
+          // `grantReward` after the ad SDK reports a successful reward.
+          Navigator.of(sheetContext).pop();
+          final FeatureAccessDecision rewarded =
+              await cubit.grantReward(item.feature);
+          if (!context.mounted) {
+            return;
+          }
+          if (rewarded.canOpen) {
+            context.push(item.route);
+          } else if (rewarded.isPremiumGated) {
+            await _showPremiumSheet(context, rewarded);
+          }
+        },
+        onViewPlans: () {
+          Navigator.of(sheetContext).pop();
+          context.push('/subscription');
+        },
+      ),
+    );
+  }
+
+  Future<void> _showPremiumSheet(
+    BuildContext context,
+    FeatureAccessDecision decision,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext sheetContext) => _PremiumGateSheet(
+        message: decision.message ??
+            'Free access is spent for this period. Upgrade to Premium for '
+                'unlimited use.',
+        onViewPlans: () {
+          Navigator.of(sheetContext).pop();
+          context.push('/subscription');
+        },
+      ),
+    );
   }
 }
 
@@ -354,9 +437,17 @@ class _MembershipCard extends StatelessWidget {
   }
 }
 
-class _SoftUnlockSheet extends StatelessWidget {
-  const _SoftUnlockSheet({required this.onViewPlans});
+class _RewardedUnlockSheet extends StatelessWidget {
+  const _RewardedUnlockSheet({
+    required this.title,
+    required this.message,
+    required this.onWatchAd,
+    required this.onViewPlans,
+  });
 
+  final String title;
+  final String message;
+  final VoidCallback onWatchAd;
   final VoidCallback onViewPlans;
 
   @override
@@ -369,28 +460,99 @@ class _SoftUnlockSheet extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Container(
-            width: 52,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppTheme.border,
-              borderRadius: BorderRadius.circular(999),
+          Center(
+            child: Container(
+              width: 52,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Free usage reached for now',
+            'Unlock more of $title',
             style: Theme.of(context).textTheme.headlineSmall,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'The monetization will be softened further, but for the current build this feature still needs Premium once the daily free access is used.',
+            message,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 18),
-          FilledButton(onPressed: onViewPlans, child: const Text('View plans')),
+          FilledButton.icon(
+            onPressed: onWatchAd,
+            icon: const Icon(Icons.play_circle_outline_rounded),
+            label: const Text('Watch a short ad to unlock'),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: onViewPlans,
+            child: const Text('Or upgrade to Premium'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Not now'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumGateSheet extends StatelessWidget {
+  const _PremiumGateSheet({
+    required this.message,
+    required this.onViewPlans,
+  });
+
+  final String message;
+  final VoidCallback onViewPlans;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
+      decoration: const BoxDecoration(
+        color: AppTheme.cream,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Center(
+            child: Container(
+              width: 52,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Premium unlocks this',
+            style: Theme.of(context).textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: onViewPlans,
+            child: const Text('View plans'),
+          ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

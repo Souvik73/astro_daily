@@ -35,6 +35,7 @@ import '../../features/home/data/datasources/home_local_data_source.dart';
 import '../../features/home/data/repositories/home_repository_impl.dart';
 import '../../features/home/domain/repositories/home_repository.dart';
 import '../../features/home/domain/usecases/get_home_dashboard.dart';
+import '../../features/home/domain/usecases/grant_feature_reward.dart';
 import '../../features/home/domain/usecases/request_feature_access.dart';
 import '../../features/home/presentation/cubit/home_cubit.dart';
 import '../../features/kundli/data/datasources/kundli_remote_data_source.dart';
@@ -213,10 +214,14 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<RequestFeatureAccess>(
     () => RequestFeatureAccess(sl<HomeRepository>()),
   );
+  sl.registerLazySingleton<GrantFeatureReward>(
+    () => GrantFeatureReward(sl<HomeRepository>()),
+  );
   sl.registerFactory<HomeCubit>(
     () => HomeCubit(
       getHomeDashboard: sl<GetHomeDashboard>(),
       requestFeatureAccess: sl<RequestFeatureAccess>(),
+      grantFeatureReward: sl<GrantFeatureReward>(),
     ),
   );
 

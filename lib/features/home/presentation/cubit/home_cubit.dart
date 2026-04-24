@@ -10,6 +10,7 @@ import '../../domain/entities/feature_access_decision.dart';
 import '../../domain/entities/home_dashboard.dart';
 import '../../domain/entities/home_feature_usage.dart';
 import '../../domain/usecases/get_home_dashboard.dart';
+import '../../domain/usecases/grant_feature_reward.dart';
 import '../../domain/usecases/request_feature_access.dart';
 
 enum HomeStatus { initial, loading, loaded, failure }
@@ -46,12 +47,7 @@ class HomeState extends Equatable {
   HomeFeatureUsage usageFor(AppFeature feature) {
     return featureUsage.firstWhere(
       (HomeFeatureUsage usage) => usage.feature == feature,
-      orElse: () => HomeFeatureUsage(
-        feature: feature,
-        usedToday: 0,
-        dailyQuota: 0,
-        canUse: false,
-      ),
+      orElse: () => HomeFeatureUsage.empty(feature),
     );
   }
 
@@ -59,23 +55,26 @@ class HomeState extends Equatable {
 
   @override
   List<Object?> get props => <Object?>[
-    status,
-    user,
-    featureUsage,
-    errorMessage,
-  ];
+        status,
+        user,
+        featureUsage,
+        errorMessage,
+      ];
 }
 
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({
     required GetHomeDashboard getHomeDashboard,
     required RequestFeatureAccess requestFeatureAccess,
-  }) : _getHomeDashboard = getHomeDashboard,
-       _requestFeatureAccess = requestFeatureAccess,
-       super(const HomeState.initial());
+    required GrantFeatureReward grantFeatureReward,
+  })  : _getHomeDashboard = getHomeDashboard,
+        _requestFeatureAccess = requestFeatureAccess,
+        _grantFeatureReward = grantFeatureReward,
+        super(const HomeState.initial());
 
   final GetHomeDashboard _getHomeDashboard;
   final RequestFeatureAccess _requestFeatureAccess;
+  final GrantFeatureReward _grantFeatureReward;
 
   Future<void> loadDashboard() async {
     emit(state.copyWith(status: HomeStatus.loading, errorMessage: null));
@@ -106,9 +105,24 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  /// Requests access to [feature]. Returns the decision for the caller to
+  /// branch on (navigate / show rewarded sheet / show premium sheet), and
+  /// refreshes the dashboard so usage counters stay in sync.
   Future<FeatureAccessDecision> openFeature(AppFeature feature) async {
     final FeatureAccessDecision decision = await _requestFeatureAccess(
       RequestFeatureAccessParams(feature: feature),
+    );
+    await loadDashboard();
+    return decision;
+  }
+
+  /// Records a successful rewarded unlock and returns the updated
+  /// decision. The caller is expected to run the rewarded-ad handshake via
+  /// `AdGateway` before calling this; for now the home page calls it
+  /// directly from the "Watch ad" CTA as a placeholder.
+  Future<FeatureAccessDecision> grantReward(AppFeature feature) async {
+    final FeatureAccessDecision decision = await _grantFeatureReward(
+      GrantFeatureRewardParams(feature: feature),
     );
     await loadDashboard();
     return decision;
