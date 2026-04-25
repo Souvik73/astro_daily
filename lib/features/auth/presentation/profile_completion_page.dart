@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/widgets/astro_backdrop.dart';
@@ -100,8 +101,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     return BlocListener<ProfileCompletionCubit, ProfileCompletionState>(
       listenWhen:
           (ProfileCompletionState previous, ProfileCompletionState current) =>
-              previous.errorMessage != current.errorMessage,
+              previous.errorMessage != current.errorMessage ||
+              previous.status != current.status,
       listener: (BuildContext context, ProfileCompletionState state) {
+        if (state.status == ProfileCompletionStatus.success) {
+          context.go('/home');
+          return;
+        }
         final String? message = state.errorMessage;
         if (message == null || message.isEmpty) {
           return;

@@ -218,9 +218,6 @@ class AppRouter {
     if (!loggedIn && !isOnLogin && !isOnSignup) {
       return '/login';
     }
-    if (loggedIn && !needsProfileCompletion && isOnProfileCompletion) {
-      return '/home';
-    }
     if (loggedIn && (isOnLogin || isOnSignup)) {
       return needsProfileCompletion ? '/complete-profile' : '/home';
     }

@@ -117,6 +117,7 @@ class ProfileCompletionCubit extends Cubit<ProfileCompletionState> {
           ),
         ),
       );
+      if (isClosed) return;
       emit(
         state.copyWith(
           status: ProfileCompletionStatus.success,
@@ -124,6 +125,7 @@ class ProfileCompletionCubit extends Cubit<ProfileCompletionState> {
         ),
       );
     } catch (error) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           status: ProfileCompletionStatus.failure,
