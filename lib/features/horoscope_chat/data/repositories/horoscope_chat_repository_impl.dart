@@ -21,6 +21,7 @@ class HoroscopeChatRepositoryImpl implements HoroscopeChatRepository {
     required String question,
     required DailyHoroscope horoscope,
     required String locale,
+    List<Map<String, String>> chatHistory = const <Map<String, String>>[],
   }) async {
     final user = _authRepository.getCurrentUser();
     if (user == null) {
@@ -40,6 +41,7 @@ class HoroscopeChatRepositoryImpl implements HoroscopeChatRepository {
       question: question,
       horoscope: context,
       locale: locale,
+      chatHistory: chatHistory,
     );
 
     return ChatMessage(

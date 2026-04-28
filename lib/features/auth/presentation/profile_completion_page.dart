@@ -1,6 +1,9 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/widgets/astro_backdrop.dart';
@@ -84,6 +87,36 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     );
   }
 
+  /// Triggers birth chart computation on the server immediately after the
+  /// profile is saved. Fire-and-forget — navigation is not blocked.
+  void _triggerChartComputation(ProfileCompletionState state) {
+    final DateTime? dob = state.dateOfBirth;
+    final String? tob = state.timeOfBirth;
+    final String place = _placeOfBirthController.text.trim();
+
+    if (dob == null || tob == null || place.isEmpty) return;
+
+    final String dobStr =
+        '${dob.year.toString().padLeft(4, '0')}-'
+        '${dob.month.toString().padLeft(2, '0')}-'
+        '${dob.day.toString().padLeft(2, '0')}';
+
+    // Invoke without awaiting — errors are swallowed; the chart will be
+    // computed on the user's first feature request if this call fails.
+    unawaited(
+      Supabase.instance.client.functions
+          .invoke(
+            'compute-chart',
+            body: <String, dynamic>{
+              'dob': dobStr,
+              'tob': tob,
+              'place': place,
+            },
+          )
+          .onError((_, __) => FunctionResponse(data: null, status: 0)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AuthState authState = context.watch<AuthBloc>().state;
@@ -105,6 +138,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               previous.status != current.status,
       listener: (BuildContext context, ProfileCompletionState state) {
         if (state.status == ProfileCompletionStatus.success) {
+          // Kick off birth chart computation in the background.
+          // The edge function caches the result; features degrade gracefully
+          // if they open before it finishes.
+          _triggerChartComputation(state);
           context.go('/home');
           return;
         }

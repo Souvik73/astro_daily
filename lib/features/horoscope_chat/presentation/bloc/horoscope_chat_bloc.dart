@@ -1,7 +1,11 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/error/failures.dart';
+import '../../../../core/error/failures.dart'
+    show
+        AiChartMissingFailure,
+        AiQuotaExceededFailure,
+        Failure;
 import '../../../../core/services/contracts.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../daily_horoscope/domain/entities/daily_horoscope.dart';
@@ -206,12 +210,24 @@ class HoroscopeChatBloc
       ),
     );
 
+    // Build conversation history from existing messages (exclude the new user msg
+    // we just added above, since it hasn't been answered yet).
+    final List<Map<String, String>> history = state.messages
+        .map(
+          (ChatMessage m) => <String, String>{
+            'role': m.isUser ? 'user' : 'assistant',
+            'content': m.content,
+          },
+        )
+        .toList();
+
     try {
       final ChatMessage reply = await _sendHoroscopeMessage(
         SendHoroscopeMessageParams(
           question: event.question,
           horoscope: state.horoscope!,
           locale: state.locale,
+          chatHistory: history,
         ),
       );
 
@@ -229,6 +245,25 @@ class HoroscopeChatBloc
           messages: <ChatMessage>[...state.messages, reply],
           questionsRemaining: remaining,
           access: updatedQuota.access,
+        ),
+      );
+    } on AiQuotaExceededFailure {
+      emit(
+        state.copyWith(
+          status: HoroscopeChatStatus.ready,
+          // Remove the optimistic user message since the quota is exceeded
+          messages: state.messages
+              .where((ChatMessage m) => m.id != userMessage.id)
+              .toList(),
+          access: FeatureAccess.premiumRequired,
+          errorMessage: 'Daily question limit reached. Upgrade to Premium for more.',
+        ),
+      );
+    } on AiChartMissingFailure catch (failure) {
+      emit(
+        state.copyWith(
+          status: HoroscopeChatStatus.failure,
+          errorMessage: failure.message,
         ),
       );
     } on Failure catch (failure) {

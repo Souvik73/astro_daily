@@ -6,6 +6,7 @@ abstract class HoroscopeChatDataSource {
     required String question,
     required HoroscopeResponse horoscope,
     required String locale,
+    List<Map<String, String>> chatHistory = const <Map<String, String>>[],
   });
 }
 
@@ -20,11 +21,13 @@ class HoroscopeChatDataSourceImpl implements HoroscopeChatDataSource {
     required String question,
     required HoroscopeResponse horoscope,
     required String locale,
+    List<Map<String, String>> chatHistory = const <Map<String, String>>[],
   }) {
     return _aiPersonalizer.answerHoroscopeQuestion(
       question,
       horoscope: horoscope,
       locale: locale,
+      chatHistory: chatHistory,
     );
   }
 }

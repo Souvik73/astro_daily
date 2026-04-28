@@ -79,8 +79,11 @@ import '../../features/subscription/domain/usecases/restore_subscription_purchas
 import '../../features/subscription/presentation/cubit/subscription_cubit.dart';
 import '../models/subscription_models.dart';
 import '../policy/usage_policy.dart';
+import '../config/auth_environment.dart' show AuthEnvironment;
 import '../services/contracts.dart';
 import '../services/mock_services.dart';
+import '../services/remote_ai_personalizer.dart';
+import '../services/remote_astro_provider.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -92,9 +95,16 @@ Future<void> initDependencies({bool reset = false}) async {
     return;
   }
 
-  sl.registerLazySingleton<AstroProvider>(() => MockAstroProvider());
+  // Switch between real AI (remote) and local mocks via .env flag AI_REMOTE_ENABLED.
+  // Defaults to true — set AI_REMOTE_ENABLED=false to fall back to templates.
+  if (AuthEnvironment.aiRemoteEnabled) {
+    sl.registerLazySingleton<AstroProvider>(() => RemoteAstroProvider());
+    sl.registerLazySingleton<AiPersonalizer>(() => RemoteAiPersonalizer());
+  } else {
+    sl.registerLazySingleton<AstroProvider>(() => MockAstroProvider());
+    sl.registerLazySingleton<AiPersonalizer>(() => LocalTemplateAiPersonalizer());
+  }
   sl.registerLazySingleton<GemstoneEngine>(() => RuleBasedGemstoneEngine());
-  sl.registerLazySingleton<AiPersonalizer>(() => LocalTemplateAiPersonalizer());
   sl.registerLazySingleton<BillingGateway>(() => MockBillingGateway());
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance);
   sl.registerLazySingleton<SupabaseClient>(() => Supabase.instance.client);

@@ -6,5 +6,6 @@ abstract class HoroscopeChatRepository {
     required String question,
     required DailyHoroscope horoscope,
     required String locale,
+    List<Map<String, String>> chatHistory = const <Map<String, String>>[],
   });
 }

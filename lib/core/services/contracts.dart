@@ -89,6 +89,10 @@ abstract class AiPersonalizer {
     String question, {
     required HoroscopeResponse horoscope,
     required String locale,
+    /// Conversation history as [{role: "user"|"assistant", content: "..."}].
+    /// Local implementations may ignore this; the remote implementation uses
+    /// it to maintain conversational context with Gemini.
+    List<Map<String, String>> chatHistory = const <Map<String, String>>[],
   });
 }
 

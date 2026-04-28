@@ -19,6 +19,13 @@ class AuthEnvironment {
   static bool get appleSignInEnabled =>
       _readBool(dotenv.env['APPLE_SIGN_IN_ENABLED']);
 
+  /// Set AI_REMOTE_ENABLED=false in .env to fall back to local mock responses.
+  /// Defaults to true so new installs use real AI immediately.
+  static bool get aiRemoteEnabled {
+    final String? value = dotenv.env['AI_REMOTE_ENABLED'];
+    return value == null ? true : _readBool(value);
+  }
+
   static bool _readBool(String? value) {
     if (value == null) {
       return false;

@@ -198,6 +198,7 @@ class LocalTemplateAiPersonalizer implements AiPersonalizer {
     String question, {
     required HoroscopeResponse horoscope,
     required String locale,
+    List<Map<String, String>> chatHistory = const <Map<String, String>>[],
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 200));
     final String q = question.toLowerCase();

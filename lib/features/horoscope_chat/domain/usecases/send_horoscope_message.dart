@@ -15,6 +15,7 @@ class SendHoroscopeMessage
       question: params.question,
       horoscope: params.horoscope,
       locale: params.locale,
+      chatHistory: params.chatHistory,
     );
   }
 }
@@ -24,9 +25,11 @@ class SendHoroscopeMessageParams {
     required this.question,
     required this.horoscope,
     required this.locale,
+    this.chatHistory = const <Map<String, String>>[],
   });
 
   final String question;
   final DailyHoroscope horoscope;
   final String locale;
+  final List<Map<String, String>> chatHistory;
 }
