@@ -1,5 +1,6 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/models/astro_models.dart';
+import '../../../../core/services/contracts.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../daily_horoscope/domain/entities/daily_horoscope.dart';
 import '../../domain/entities/chat_message.dart';
@@ -37,7 +38,7 @@ class HoroscopeChatRepositoryImpl implements HoroscopeChatRepository {
       luckyNumber: horoscope.luckyNumber,
     );
 
-    final String answer = await _dataSource.askQuestion(
+    final HoroscopeChatReply answer = await _dataSource.askQuestion(
       question: question,
       horoscope: context,
       locale: locale,
@@ -46,9 +47,10 @@ class HoroscopeChatRepositoryImpl implements HoroscopeChatRepository {
 
     return ChatMessage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      content: answer,
+      content: answer.reply,
       author: ChatAuthor.assistant,
       timestamp: DateTime.now(),
+      suggestions: answer.suggestions,
     );
   }
 }

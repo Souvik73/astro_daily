@@ -194,7 +194,7 @@ class LocalTemplateAiPersonalizer implements AiPersonalizer {
   }
 
   @override
-  Future<String> answerHoroscopeQuestion(
+  Future<HoroscopeChatReply> answerHoroscopeQuestion(
     String question, {
     required HoroscopeResponse horoscope,
     required String locale,
@@ -226,7 +226,7 @@ class LocalTemplateAiPersonalizer implements AiPersonalizer {
           'mind as you navigate the day.';
     }
 
-    return answer;
+    return HoroscopeChatReply(reply: answer);
   }
 
   String _workAnswer(String sign, String summary) =>

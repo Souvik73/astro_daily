@@ -74,6 +74,21 @@ abstract class GemstoneEngine {
   Future<GemstoneReport> buildReport(KundliData kundliData);
 }
 
+/// Response object returned by [AiPersonalizer.answerHoroscopeQuestion].
+///
+/// [reply] is the AI-generated answer text.
+/// [suggestions] is a list of up to 3 contextual follow-up questions the user
+/// might want to ask next; empty for local/fallback implementations.
+class HoroscopeChatReply {
+  const HoroscopeChatReply({
+    required this.reply,
+    this.suggestions = const <String>[],
+  });
+
+  final String reply;
+  final List<String> suggestions;
+}
+
 abstract class AiPersonalizer {
   Future<String> summarizeReport(
     GemstoneReport report, {
@@ -85,7 +100,7 @@ abstract class AiPersonalizer {
     required String locale,
   });
 
-  Future<String> answerHoroscopeQuestion(
+  Future<HoroscopeChatReply> answerHoroscopeQuestion(
     String question, {
     required HoroscopeResponse horoscope,
     required String locale,

@@ -2,7 +2,7 @@ import '../../../../core/models/astro_models.dart';
 import '../../../../core/services/contracts.dart';
 
 abstract class HoroscopeChatDataSource {
-  Future<String> askQuestion({
+  Future<HoroscopeChatReply> askQuestion({
     required String question,
     required HoroscopeResponse horoscope,
     required String locale,
@@ -17,7 +17,7 @@ class HoroscopeChatDataSourceImpl implements HoroscopeChatDataSource {
   final AiPersonalizer _aiPersonalizer;
 
   @override
-  Future<String> askQuestion({
+  Future<HoroscopeChatReply> askQuestion({
     required String question,
     required HoroscopeResponse horoscope,
     required String locale,

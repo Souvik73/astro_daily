@@ -16,7 +16,7 @@ class RemoteAiPersonalizer implements AiPersonalizer {
   // ── Chat ─────────────────────────────────────────────────────────────────────
 
   @override
-  Future<String> answerHoroscopeQuestion(
+  Future<HoroscopeChatReply> answerHoroscopeQuestion(
     String question, {
     required HoroscopeResponse horoscope,
     required String locale,
@@ -47,7 +47,14 @@ class RemoteAiPersonalizer implements AiPersonalizer {
 
       final Map<String, dynamic> data =
           response.data as Map<String, dynamic>? ?? <String, dynamic>{};
-      return data['reply'] as String? ?? '';
+      final List<String> suggestions = (data['suggestions'] as List?)
+              ?.whereType<String>()
+              .toList(growable: false) ??
+          const <String>[];
+      return HoroscopeChatReply(
+        reply: data['reply'] as String? ?? '',
+        suggestions: suggestions,
+      );
     } on AiQuotaExceededFailure {
       rethrow;
     } on AiChartMissingFailure {

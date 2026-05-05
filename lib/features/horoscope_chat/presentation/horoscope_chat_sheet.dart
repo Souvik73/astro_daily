@@ -142,6 +142,15 @@ class _HoroscopeChatSheetState extends State<HoroscopeChatSheet> {
                           _SuggestionRow(
                             onTap: (String q) => _send(ctx, q),
                           ),
+                        if (state.messages.isNotEmpty &&
+                            state.messages.last.author ==
+                                ChatAuthor.assistant &&
+                            state.messages.last.suggestions.isNotEmpty &&
+                            state.status != HoroscopeChatStatus.sending)
+                          _FollowUpRow(
+                            suggestions: state.messages.last.suggestions,
+                            onTap: (String q) => _send(ctx, q),
+                          ),
                       ],
                     );
                   },
@@ -299,6 +308,41 @@ class _SuggestionRow extends StatelessWidget {
               ((String, String) s) => ActionChip(
                 label: Text(s.$1),
                 onPressed: () => onTap(s.$2),
+                side: const BorderSide(color: AppTheme.border),
+                backgroundColor: Colors.white,
+                labelStyle:
+                    Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: AppTheme.ink,
+                        ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _FollowUpRow extends StatelessWidget {
+  const _FollowUpRow({
+    required this.suggestions,
+    required this.onTap,
+  });
+
+  final List<String> suggestions;
+  final void Function(String question) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: suggestions
+            .map(
+              (String q) => ActionChip(
+                label: Text(q),
+                onPressed: () => onTap(q),
                 side: const BorderSide(color: AppTheme.border),
                 backgroundColor: Colors.white,
                 labelStyle:
