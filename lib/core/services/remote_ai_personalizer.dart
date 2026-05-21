@@ -54,6 +54,7 @@ class RemoteAiPersonalizer implements AiPersonalizer {
       return HoroscopeChatReply(
         reply: data['reply'] as String? ?? '',
         suggestions: suggestions,
+        remaining: (data['remaining'] as num?)?.toInt(),
       );
     } on AiQuotaExceededFailure {
       rethrow;

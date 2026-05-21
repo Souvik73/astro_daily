@@ -235,9 +235,15 @@ class HoroscopeChatBloc
 
       final FeatureQuotaStatus updatedQuota =
           _usagePolicy.statusFor(user.id, AppFeature.horoscopeChat);
-      final int remaining = updatedQuota.quota < 0
+      final int localRemaining = updatedQuota.quota < 0
           ? -1
           : (updatedQuota.quota - updatedQuota.used).clamp(0, updatedQuota.quota);
+
+      // Prefer the server-authoritative remaining count when available. The
+      // server is the source of truth for the chat_quotas table, so using its
+      // value keeps the UI in sync even if the local policy drifts (e.g. after
+      // an app restart or when the same account is used on multiple devices).
+      final int remaining = reply.questionsRemaining ?? localRemaining;
 
       emit(
         state.copyWith(

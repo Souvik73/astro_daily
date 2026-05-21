@@ -85,7 +85,6 @@ class SupabaseAuthLocalDataSource implements AuthLocalDataSource {
   final StreamController<User?> _authStateController =
       StreamController<User?>.broadcast();
 
-  Future<void>? _googleInitialization;
   _PendingProfileSeed? _pendingProfileSeed;
   late final StreamSubscription<supabase.AuthState> _authStateSubscription;
   User? _currentUser;
@@ -166,9 +165,35 @@ class SupabaseAuthLocalDataSource implements AuthLocalDataSource {
         return;
       }
 
-      await _ensureGoogleInitialized();
-      final GoogleSignInAccount googleAccount = await _googleSignIn
-          .authenticate();
+      // Validate credentials before touching the UI.
+      if (_googleServerClientId.isEmpty) {
+        throw const supabase.AuthException(
+          'Missing GOOGLE_SERVER_CLIENT_ID dart define for native Google sign in.',
+        );
+      }
+      if (_requiresIosClientId && _googleIosClientId.isEmpty) {
+        throw const supabase.AuthException(
+          'Missing GOOGLE_IOS_CLIENT_ID dart define for native Google sign in.',
+        );
+      }
+
+      // Generate a fresh nonce for every sign-in attempt. The nonce must be
+      // set on initialize() (not authenticate()) in google_sign_in v7, so we
+      // re-initialize each time with the new hashed nonce. Supabase receives
+      // the raw nonce and hashes it server-side to verify against the claim
+      // embedded in the returned ID token — same pattern as Apple Sign In.
+      final String rawNonce = _authClient.generateRawNonce();
+      final String hashedNonce = sha256
+          .convert(utf8.encode(rawNonce))
+          .toString();
+
+      await _googleSignIn.initialize(
+        clientId: _requiresIosClientId ? _googleIosClientId : null,
+        serverClientId: _googleServerClientId,
+        nonce: hashedNonce,
+      );
+      final GoogleSignInAccount googleAccount =
+          await _googleSignIn.authenticate();
       final String? idToken = googleAccount.authentication.idToken;
 
       if (idToken == null) {
@@ -196,6 +221,7 @@ class SupabaseAuthLocalDataSource implements AuthLocalDataSource {
         provider: supabase.OAuthProvider.google,
         idToken: idToken,
         accessToken: accessToken,
+        nonce: rawNonce,
       );
       // The onAuthStateChange listener will refresh the current user from
       // the new session, so we deliberately do not call _refreshCurrentUser
@@ -361,24 +387,6 @@ class SupabaseAuthLocalDataSource implements AuthLocalDataSource {
   void dispose() {
     _authStateSubscription.cancel();
     _authStateController.close();
-  }
-
-  Future<void> _ensureGoogleInitialized() {
-    if (_googleServerClientId.isEmpty) {
-      throw const supabase.AuthException(
-        'Missing GOOGLE_SERVER_CLIENT_ID dart define for native Google sign in.',
-      );
-    }
-    if (_requiresIosClientId && _googleIosClientId.isEmpty) {
-      throw const supabase.AuthException(
-        'Missing GOOGLE_IOS_CLIENT_ID dart define for native Google sign in.',
-      );
-    }
-
-    return _googleInitialization ??= _googleSignIn.initialize(
-      clientId: _requiresIosClientId ? _googleIosClientId : null,
-      serverClientId: _googleServerClientId,
-    );
   }
 
   Future<void> _handleAuthStateChange(supabase.AuthState data) async {

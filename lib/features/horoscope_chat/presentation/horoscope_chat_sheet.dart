@@ -42,12 +42,20 @@ class HoroscopeChatSheet extends StatefulWidget {
 
 class _HoroscopeChatSheetState extends State<HoroscopeChatSheet> {
   final TextEditingController _inputController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
+
+  /// Captured from the DraggableScrollableSheet builder each frame.
+  /// Using the sheet-provided controller (not an independent one) lets the
+  /// sheet intercept drag gestures from the list — pulling up through the list
+  /// expands the sheet; pulling down at the list top collapses it.
+  ScrollController? _listScrollController;
 
   @override
   void dispose() {
     _inputController.dispose();
-    _scrollController.dispose();
+    _sheetController.dispose();
+    // _listScrollController is owned by DraggableScrollableSheet — do not dispose.
     super.dispose();
   }
 
@@ -62,9 +70,10 @@ class _HoroscopeChatSheetState extends State<HoroscopeChatSheet> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+      final ScrollController? sc = _listScrollController;
+      if (sc != null && sc.hasClients) {
+        sc.animateTo(
+          sc.position.maxScrollExtent,
           duration: const Duration(milliseconds: 280),
           curve: Curves.easeOut,
         );
@@ -74,96 +83,127 @@ class _HoroscopeChatSheetState extends State<HoroscopeChatSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.canvasSoft,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.72,
-        minChildSize: 0.45,
-        maxChildSize: 0.95,
-        builder: (BuildContext ctx, ScrollController sheetScroll) {
-          return Column(
-            children: <Widget>[
-              const _SheetHandle(),
-              const _ChatHeader(),
-              const Divider(height: 1),
-              Expanded(
-                child: BlocConsumer<HoroscopeChatBloc, HoroscopeChatState>(
-                  listenWhen: (HoroscopeChatState prev, HoroscopeChatState curr) =>
-                      curr.messages.length != prev.messages.length ||
-                      curr.status == HoroscopeChatStatus.failure,
-                  listener: (BuildContext ctx, HoroscopeChatState state) {
-                    _scrollToBottom();
-                    if (state.status == HoroscopeChatStatus.failure &&
-                        state.errorMessage != null) {
-                      ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          SnackBar(content: Text(state.errorMessage!)),
+    // DraggableScrollableSheet must be the ROOT widget so showModalBottomSheet
+    // passes it the full-screen height as its constraint. If it were nested
+    // inside a Container or any other unconstrained widget, it could never
+    // measure how much space is available and would refuse to expand beyond
+    // its initial size.
+    return DraggableScrollableSheet(
+      controller: _sheetController,
+      expand: false,
+      initialChildSize: 0.72,
+      minChildSize: 0.45,
+      maxChildSize: 1.0,
+      snap: true,
+      snapSizes: const <double>[0.72, 1.0],
+      builder: (BuildContext ctx, ScrollController sheetScroll) {
+        // Capture the sheet-provided controller so _scrollToBottom can drive it.
+        _listScrollController = sheetScroll;
+
+        // ListenableBuilder sits INSIDE the sheet's builder so it can read
+        // the live sheet size from the controller without constraining it.
+        return ListenableBuilder(
+          listenable: _sheetController,
+          builder: (BuildContext context, Widget? _) {
+            // Animate the top corner radius from 28 → 0 as the sheet travels
+            // from 90 % to 100 % of the viewport — seamless full-screen look.
+            final double size =
+                _sheetController.isAttached ? _sheetController.size : 0.72;
+            final double t = ((size - 0.90) / 0.10).clamp(0.0, 1.0);
+            final double radius = 28.0 * (1.0 - t);
+
+            return Container(
+              decoration: BoxDecoration(
+                color: AppTheme.canvasSoft,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(radius)),
+              ),
+              child: Column(
+                children: <Widget>[
+                  const _SheetHandle(),
+                  const _ChatHeader(),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: BlocConsumer<HoroscopeChatBloc, HoroscopeChatState>(
+                      listenWhen: (
+                        HoroscopeChatState prev,
+                        HoroscopeChatState curr,
+                      ) =>
+                          curr.messages.length != prev.messages.length ||
+                          curr.status == HoroscopeChatStatus.failure,
+                      listener: (BuildContext ctx, HoroscopeChatState state) {
+                        _scrollToBottom();
+                        if (state.status == HoroscopeChatStatus.failure &&
+                            state.errorMessage != null) {
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(content: Text(state.errorMessage!)),
+                            );
+                        }
+                      },
+                      builder: (BuildContext ctx, HoroscopeChatState state) {
+                        return Column(
+                          children: <Widget>[
+                            if (state.access != FeatureAccess.open &&
+                                state.messages.isNotEmpty)
+                              _QuotaBanner(access: state.access),
+                            Expanded(
+                              child: state.messages.isEmpty
+                                  ? _EmptyPrompt(
+                                      zodiacSign:
+                                          state.horoscope?.zodiacSign ?? '',
+                                    )
+                                  : ListView.builder(
+                                      controller: sheetScroll,
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 12, 16, 8),
+                                      itemCount: state.messages.length +
+                                          (state.status ==
+                                                  HoroscopeChatStatus.sending
+                                              ? 1
+                                              : 0),
+                                      itemBuilder: (
+                                        BuildContext ctx,
+                                        int index,
+                                      ) {
+                                        if (index == state.messages.length) {
+                                          return const _TypingIndicator();
+                                        }
+                                        return _MessageBubble(
+                                          message: state.messages[index],
+                                        );
+                                      },
+                                    ),
+                            ),
+                            if (state.messages.isEmpty)
+                              _SuggestionRow(
+                                onTap: (String q) => _send(ctx, q),
+                              ),
+                            if (state.messages.isNotEmpty &&
+                                state.messages.last.author ==
+                                    ChatAuthor.assistant &&
+                                state.messages.last.suggestions.isNotEmpty &&
+                                state.status != HoroscopeChatStatus.sending)
+                              _FollowUpRow(
+                                suggestions: state.messages.last.suggestions,
+                                onTap: (String q) => _send(ctx, q),
+                              ),
+                          ],
                         );
-                    }
-                  },
-                  builder: (BuildContext ctx, HoroscopeChatState state) {
-                    return Column(
-                      children: <Widget>[
-                        if (state.access != FeatureAccess.open &&
-                            state.messages.isNotEmpty)
-                          _QuotaBanner(access: state.access),
-                        Expanded(
-                          child: state.messages.isEmpty
-                              ? _EmptyPrompt(
-                                  zodiacSign:
-                                      state.horoscope?.zodiacSign ?? '',
-                                )
-                              : ListView.builder(
-                                  controller: _scrollController,
-                                  padding: const EdgeInsets.fromLTRB(
-                                      16, 12, 16, 8),
-                                  itemCount: state.messages.length +
-                                      (state.status ==
-                                              HoroscopeChatStatus.sending
-                                          ? 1
-                                          : 0),
-                                  itemBuilder:
-                                      (BuildContext ctx, int index) {
-                                    if (index == state.messages.length) {
-                                      return const _TypingIndicator();
-                                    }
-                                    return _MessageBubble(
-                                      message: state.messages[index],
-                                    );
-                                  },
-                                ),
-                        ),
-                        if (state.messages.isEmpty)
-                          _SuggestionRow(
-                            onTap: (String q) => _send(ctx, q),
-                          ),
-                        if (state.messages.isNotEmpty &&
-                            state.messages.last.author ==
-                                ChatAuthor.assistant &&
-                            state.messages.last.suggestions.isNotEmpty &&
-                            state.status != HoroscopeChatStatus.sending)
-                          _FollowUpRow(
-                            suggestions: state.messages.last.suggestions,
-                            onTap: (String q) => _send(ctx, q),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+                      },
+                    ),
+                  ),
+                  _InputRow(
+                    controller: _inputController,
+                    onSend: () => _send(context, _inputController.text),
+                  ),
+                ],
               ),
-              _InputRow(
-                controller: _inputController,
-                onSend: () => _send(context, _inputController.text),
-              ),
-            ],
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }

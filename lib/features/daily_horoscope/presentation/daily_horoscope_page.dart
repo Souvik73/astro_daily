@@ -214,16 +214,24 @@ class DailyHoroscopePage extends StatelessWidget {
                       action: 'Grounded cues',
                     ),
                     const SizedBox(height: 12),
-                    for (int index = 0; index < horoscope.dosDonts.length; index++)
+                    for (final String item in horoscope.dosDonts)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _InsightRow(
-                          title: index.isEven ? 'Do' : 'Don\'t',
-                          body: horoscope.dosDonts[index],
-                          accent: index.isEven ? AppTheme.teal : AppTheme.coral,
-                          icon: index.isEven
-                              ? Icons.check_circle_outline_rounded
-                              : Icons.remove_circle_outline_rounded,
+                          // Determine Do vs Don't from the string prefix so the
+                          // label is always correct regardless of list order.
+                          title: item.startsWith("Don't") ? "Don't" : 'Do',
+                          // Strip the prefix ("Do: " / "Don't: ") from the body
+                          // so it isn't repeated alongside the tile title.
+                          body: item.contains(': ')
+                              ? item.substring(item.indexOf(': ') + 2)
+                              : item,
+                          accent: item.startsWith("Don't")
+                              ? AppTheme.coral
+                              : AppTheme.teal,
+                          icon: item.startsWith("Don't")
+                              ? Icons.remove_circle_outline_rounded
+                              : Icons.check_circle_outline_rounded,
                         ),
                       ),
                   ],

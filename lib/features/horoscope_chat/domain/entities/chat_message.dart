@@ -9,6 +9,7 @@ final class ChatMessage extends Equatable {
     required this.author,
     required this.timestamp,
     this.suggestions = const <String>[],
+    this.questionsRemaining,
   });
 
   final String id;
@@ -20,6 +21,11 @@ final class ChatMessage extends Equatable {
   /// Only non-empty on assistant messages; always empty on user messages.
   final List<String> suggestions;
 
+  /// Server-authoritative remaining quota count after this message was sent.
+  /// Non-null only on assistant messages when the server reported it.
+  /// The bloc uses this to reconcile the local quota counter with server reality.
+  final int? questionsRemaining;
+
   bool get isUser => author == ChatAuthor.user;
 
   ChatMessage copyWith({
@@ -28,6 +34,7 @@ final class ChatMessage extends Equatable {
     ChatAuthor? author,
     DateTime? timestamp,
     List<String>? suggestions,
+    int? questionsRemaining,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -35,9 +42,17 @@ final class ChatMessage extends Equatable {
       author: author ?? this.author,
       timestamp: timestamp ?? this.timestamp,
       suggestions: suggestions ?? this.suggestions,
+      questionsRemaining: questionsRemaining ?? this.questionsRemaining,
     );
   }
 
   @override
-  List<Object?> get props => <Object?>[id, content, author, timestamp, suggestions];
+  List<Object?> get props => <Object?>[
+        id,
+        content,
+        author,
+        timestamp,
+        suggestions,
+        questionsRemaining,
+      ];
 }

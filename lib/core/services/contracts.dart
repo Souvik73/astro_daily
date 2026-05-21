@@ -79,14 +79,19 @@ abstract class GemstoneEngine {
 /// [reply] is the AI-generated answer text.
 /// [suggestions] is a list of up to 3 contextual follow-up questions the user
 /// might want to ask next; empty for local/fallback implementations.
+/// [remaining] is the server-authoritative remaining quota count for today.
+/// Null when the response came from a local/fallback implementation that has
+/// no knowledge of the server-side quota.
 class HoroscopeChatReply {
   const HoroscopeChatReply({
     required this.reply,
     this.suggestions = const <String>[],
+    this.remaining,
   });
 
   final String reply;
   final List<String> suggestions;
+  final int? remaining;
 }
 
 abstract class AiPersonalizer {

@@ -51,6 +51,7 @@ class HoroscopeChatRepositoryImpl implements HoroscopeChatRepository {
       author: ChatAuthor.assistant,
       timestamp: DateTime.now(),
       suggestions: answer.suggestions,
+      questionsRemaining: answer.remaining,
     );
   }
 }
