@@ -45,6 +45,12 @@ dependencies:
   google_sign_in: ^7.2.0
   crypto: ^3.0.6
   flutter_dotenv: ^6.0.0
+  google_mobile_ads: 9.0.0 # pinned: 9.1.0 bumps native iOS SDK to 13.7.0, which fails to
+  # build under Xcode 26.3 ("Include of non-modular header inside framework
+  # module ... GoogleMobileAds_Beta.h" in the new FLTAdPreloader/FLTAd_Internal
+  # ad-preloading files). Re-test before bumping past this.
+  in_app_purchase: ^3.3.0
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
