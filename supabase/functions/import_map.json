@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "luxon": "https://esm.sh/luxon@3.5.0",
+    "tz-lookup": "https://esm.sh/tz-lookup@6.1.25",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}
