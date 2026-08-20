@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/subscription_models.dart';
 import '../services/contracts.dart';
 
@@ -86,24 +90,31 @@ const Map<AppFeature, FeatureQuotaConfig> kDefaultQuotaConfigs =
   ),
 };
 
-/// In-memory implementation of [UsagePolicy]. Counters reset when the app
-/// process dies; a production implementation should back this with the
-/// Supabase `feature_usage` + `ad_rewards` tables so quotas survive
-/// restarts and can be enforced server-side.
-class InMemoryUsagePolicy implements UsagePolicy {
-  InMemoryUsagePolicy({
+/// [SharedPreferences]-backed implementation of [UsagePolicy]. Counters
+/// persist across app restarts, keyed by user + feature + period, so
+/// quitting the app no longer resets free-tier quotas or reward-unlock
+/// grants. Period keys already encode the date/ISO-week (see [_periodKey]),
+/// so entries from past periods simply become unused/orphaned rather than
+/// needing explicit pruning.
+///
+/// This is a client-side counter, not a server-enforced one — same trust
+/// model this app already uses for `subscription_tier`. A future
+/// server-authoritative version would back this with the Supabase
+/// `feature_usage` + `ad_rewards` tables instead.
+class PersistedUsagePolicy implements UsagePolicy {
+  PersistedUsagePolicy({
     required this.tierLookup,
+    required SharedPreferences preferences,
     Map<AppFeature, FeatureQuotaConfig> configs = kDefaultQuotaConfigs,
     DateTime Function()? now,
-  })  : _configs = configs,
+  })  : _preferences = preferences,
+        _configs = configs,
         _now = now ?? DateTime.now;
 
   final SubscriptionTier Function(String userId) tierLookup;
+  final SharedPreferences _preferences;
   final Map<AppFeature, FeatureQuotaConfig> _configs;
   final DateTime Function() _now;
-
-  final Map<String, int> _usage = <String, int>{};
-  final Map<String, int> _rewards = <String, int>{};
 
   @override
   FeatureAccess resolveAccess(String userId, AppFeature feature) {
@@ -140,7 +151,8 @@ class InMemoryUsagePolicy implements UsagePolicy {
   void recordUsage(String userId, AppFeature feature) {
     final FeatureQuotaConfig config = _configFor(feature);
     final String key = _usageKey(userId, feature, config.period);
-    _usage[key] = (_usage[key] ?? 0) + 1;
+    final int current = _preferences.getInt(key) ?? 0;
+    unawaited(_preferences.setInt(key, current + 1));
   }
 
   @override
@@ -150,11 +162,11 @@ class InMemoryUsagePolicy implements UsagePolicy {
       return;
     }
     final String key = _rewardsKey(userId, feature, config.period);
-    final int current = _rewards[key] ?? 0;
+    final int current = _preferences.getInt(key) ?? 0;
     if (current >= config.rewardCap) {
       return;
     }
-    _rewards[key] = current + 1;
+    unawaited(_preferences.setInt(key, current + 1));
   }
 
   @override
@@ -193,11 +205,11 @@ class InMemoryUsagePolicy implements UsagePolicy {
   }
 
   int _readUsage(String userId, AppFeature feature, QuotaPeriod period) {
-    return _usage[_usageKey(userId, feature, period)] ?? 0;
+    return _preferences.getInt(_usageKey(userId, feature, period)) ?? 0;
   }
 
   int _readRewards(String userId, AppFeature feature, QuotaPeriod period) {
-    return _rewards[_rewardsKey(userId, feature, period)] ?? 0;
+    return _preferences.getInt(_rewardsKey(userId, feature, period)) ?? 0;
   }
 
   String _usageKey(String userId, AppFeature feature, QuotaPeriod period) {
