@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/router/app_router.dart';
@@ -32,6 +33,7 @@ import '../../features/horoscope_chat/domain/repositories/horoscope_chat_reposit
 import '../../features/horoscope_chat/domain/usecases/send_horoscope_message.dart';
 import '../../features/horoscope_chat/presentation/bloc/horoscope_chat_bloc.dart';
 import '../../features/gemstones/data/datasources/gemstones_remote_data_source.dart';
+import '../../features/gemstones/data/datasources/gemstones_supabase_data_source.dart';
 import '../../features/gemstones/data/repositories/gemstones_repository_impl.dart';
 import '../../features/gemstones/domain/repositories/gemstones_repository.dart';
 import '../../features/gemstones/domain/usecases/get_gemstone_insight.dart';
@@ -48,10 +50,12 @@ import '../../features/kundli/data/repositories/kundli_repository_impl.dart';
 import '../../features/kundli/domain/repositories/kundli_repository.dart';
 import '../../features/kundli/domain/usecases/get_kundli_insight.dart';
 import '../../features/kundli/presentation/cubit/kundli_cubit.dart';
+import '../../features/matching/data/datasources/matching_local_data_source.dart';
 import '../../features/matching/data/datasources/matching_remote_data_source.dart';
 import '../../features/matching/data/repositories/matching_repository_impl.dart';
 import '../../features/matching/domain/repositories/matching_repository.dart';
 import '../../features/matching/domain/usecases/get_matching_result.dart';
+import '../../features/matching/domain/usecases/get_saved_partner.dart';
 import '../../features/matching/presentation/cubit/matching_cubit.dart';
 import '../../features/numerology/data/datasources/numerology_remote_data_source.dart';
 import '../../features/numerology/data/repositories/numerology_repository_impl.dart';
@@ -80,10 +84,17 @@ import '../../features/subscription/presentation/cubit/subscription_cubit.dart';
 import '../models/subscription_models.dart';
 import '../policy/usage_policy.dart';
 import '../config/auth_environment.dart' show AuthEnvironment;
+import '../services/admob_ad_gateway.dart';
 import '../services/contracts.dart';
+import '../services/in_app_purchase_billing_gateway.dart';
 import '../services/mock_services.dart';
 import '../services/remote_ai_personalizer.dart';
 import '../services/remote_astro_provider.dart';
+import '../services/supabase_edge_client.dart';
+
+/// Set to `true` to force all data sources to use local mock data.
+/// Useful for offline development and widget tests — no Supabase calls are made.
+const bool _useMocks = false;
 
 final GetIt sl = GetIt.instance;
 
@@ -95,9 +106,12 @@ Future<void> initDependencies({bool reset = false}) async {
     return;
   }
 
-  // Switch between real AI (remote) and local mocks via .env flag AI_REMOTE_ENABLED.
-  // Defaults to true — set AI_REMOTE_ENABLED=false to fall back to templates.
-  if (AuthEnvironment.aiRemoteEnabled) {
+  final SharedPreferences preferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton<SharedPreferences>(() => preferences);
+
+  // Use real Supabase providers unless _useMocks is true (dev override) or
+  // AI_REMOTE_ENABLED=false is explicitly set in .env.
+  if (!_useMocks && AuthEnvironment.aiRemoteEnabled) {
     sl.registerLazySingleton<AstroProvider>(() => RemoteAstroProvider());
     sl.registerLazySingleton<AiPersonalizer>(() => RemoteAiPersonalizer());
   } else {
@@ -105,9 +119,22 @@ Future<void> initDependencies({bool reset = false}) async {
     sl.registerLazySingleton<AiPersonalizer>(() => LocalTemplateAiPersonalizer());
   }
   sl.registerLazySingleton<GemstoneEngine>(() => RuleBasedGemstoneEngine());
-  sl.registerLazySingleton<BillingGateway>(() => MockBillingGateway());
+  sl.registerLazySingleton<AdGateway>(
+    _useMocks ? () => MockAdGateway() : () => AdMobAdGateway(),
+  );
+  sl.registerLazySingleton<BillingGateway>(
+    _useMocks
+        ? () => MockBillingGateway()
+        : () => InAppPurchaseBillingGateway(),
+    dispose: (BillingGateway gateway) {
+      if (gateway is InAppPurchaseBillingGateway) gateway.dispose();
+    },
+  );
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance);
   sl.registerLazySingleton<SupabaseClient>(() => Supabase.instance.client);
+  sl.registerLazySingleton<SupabaseEdgeClient>(
+    () => SupabaseEdgeClient(sl<SupabaseClient>()),
+  );
 
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => SupabaseAuthLocalDataSource(
@@ -183,7 +210,8 @@ Future<void> initDependencies({bool reset = false}) async {
   );
 
   sl.registerLazySingleton<UsagePolicy>(
-    () => InMemoryUsagePolicy(
+    () => PersistedUsagePolicy(
+      preferences: sl<SharedPreferences>(),
       tierLookup: (String userId) =>
           sl<auth_contract.AuthRepository>().getUserById(userId)?.tier ??
           SubscriptionTier.free,
@@ -279,17 +307,27 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<MatchingRemoteDataSource>(
     () => MatchingRemoteDataSourceImpl(astroProvider: sl<AstroProvider>()),
   );
+  sl.registerLazySingleton<MatchingLocalDataSource>(
+    () => MatchingLocalDataSourceImpl(),
+  );
   sl.registerLazySingleton<MatchingRepository>(
     () => MatchingRepositoryImpl(
       remoteDataSource: sl<MatchingRemoteDataSource>(),
+      localDataSource: sl<MatchingLocalDataSource>(),
       authRepository: sl<auth_contract.AuthRepository>(),
     ),
   );
   sl.registerLazySingleton<GetMatchingResult>(
     () => GetMatchingResult(sl<MatchingRepository>()),
   );
+  sl.registerLazySingleton<GetSavedPartner>(
+    () => GetSavedPartner(sl<MatchingRepository>()),
+  );
   sl.registerFactory<MatchingCubit>(
-    () => MatchingCubit(getMatchingResult: sl<GetMatchingResult>()),
+    () => MatchingCubit(
+      getMatchingResult: sl<GetMatchingResult>(),
+      getSavedPartner: sl<GetSavedPartner>(),
+    ),
   );
 
   sl.registerLazySingleton<NumerologyRemoteDataSource>(
@@ -309,11 +347,16 @@ Future<void> initDependencies({bool reset = false}) async {
   );
 
   sl.registerLazySingleton<GemstonesRemoteDataSource>(
-    () => GemstonesRemoteDataSourceImpl(
-      astroProvider: sl<AstroProvider>(),
-      gemstoneEngine: sl<GemstoneEngine>(),
-      aiPersonalizer: sl<AiPersonalizer>(),
-    ),
+    _useMocks
+        ? () => GemstonesRemoteDataSourceImpl(
+              astroProvider: sl<AstroProvider>(),
+              gemstoneEngine: sl<GemstoneEngine>(),
+              aiPersonalizer: sl<AiPersonalizer>(),
+            )
+        : () => GemstonesSupabaseDataSource(
+              edgeClient: sl<SupabaseEdgeClient>(),
+              aiPersonalizer: sl<AiPersonalizer>(),
+            ),
   );
   sl.registerLazySingleton<GemstonesRepository>(
     () => GemstonesRepositoryImpl(
@@ -410,6 +453,7 @@ Future<void> initDependencies({bool reset = false}) async {
       subscriptionCubitFactory: () => sl<SubscriptionCubit>(),
       profileCubitFactory: () => sl<ProfileCubit>(),
       settingsCubitFactory: () => sl<SettingsCubit>(),
+      horoscopeChatBlocFactory: () => sl<HoroscopeChatBloc>(),
     ),
     dispose: (AppRouter router) => router.dispose(),
   );

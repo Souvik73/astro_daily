@@ -11,6 +11,8 @@ import '../../features/auth/presentation/profile_completion_page.dart';
 import '../../features/auth/presentation/signup_page.dart';
 import '../../features/daily_horoscope/presentation/bloc/daily_horoscope_bloc.dart';
 import '../../features/daily_horoscope/presentation/daily_horoscope_page.dart';
+import '../../features/horoscope_chat/presentation/bloc/horoscope_chat_bloc.dart';
+import '../../features/horoscope_chat/presentation/horoscope_chat_page.dart';
 import '../../features/gemstones/presentation/cubit/gemstones_cubit.dart';
 import '../../features/gemstones/presentation/gemstones_page.dart';
 import '../../features/home/presentation/cubit/home_cubit.dart';
@@ -42,6 +44,7 @@ class AppRouter {
     required SubscriptionCubit Function() subscriptionCubitFactory,
     required ProfileCubit Function() profileCubitFactory,
     required SettingsCubit Function() settingsCubitFactory,
+    required HoroscopeChatBloc Function() horoscopeChatBlocFactory,
   }) : _authBloc = authBloc,
        _profileCompletionCubitFactory = profileCompletionCubitFactory,
        _dailyHoroscopeBlocFactory = dailyHoroscopeBlocFactory,
@@ -52,7 +55,8 @@ class AppRouter {
        _gemstonesCubitFactory = gemstonesCubitFactory,
        _subscriptionCubitFactory = subscriptionCubitFactory,
        _profileCubitFactory = profileCubitFactory,
-       _settingsCubitFactory = settingsCubitFactory {
+       _settingsCubitFactory = settingsCubitFactory,
+       _horoscopeChatBlocFactory = horoscopeChatBlocFactory {
     _refreshListenable = _GoRouterRefreshStream(_authBloc.stream);
     router = GoRouter(
       initialLocation: '/login',
@@ -123,7 +127,7 @@ class AppRouter {
           builder: (BuildContext context, GoRouterState state) {
             return BlocProvider<MatchingCubit>(
               create: (BuildContext context) =>
-                  _matchingCubitFactory()..fetchMatchingResult(),
+                  _matchingCubitFactory()..start(),
               child: const MatchingPage(),
             );
           },
@@ -178,6 +182,29 @@ class AppRouter {
             );
           },
         ),
+        GoRoute(
+          path: '/horoscope-chat',
+          builder: (BuildContext context, GoRouterState state) {
+            final String locale =
+                Localizations.maybeLocaleOf(context)?.languageCode ?? 'en';
+            return MultiBlocProvider(
+              providers: <BlocProvider<dynamic>>[
+                BlocProvider<DailyHoroscopeBloc>(
+                  create: (BuildContext context) =>
+                      _dailyHoroscopeBlocFactory()
+                        ..add(DailyHoroscopeRequested(
+                          locale: locale,
+                          date: DateTime.now(),
+                        )),
+                ),
+                BlocProvider<HoroscopeChatBloc>(
+                  create: (BuildContext context) => _horoscopeChatBlocFactory(),
+                ),
+              ],
+              child: const HoroscopeChatPage(),
+            );
+          },
+        ),
       ],
     );
   }
@@ -193,6 +220,7 @@ class AppRouter {
   final SubscriptionCubit Function() _subscriptionCubitFactory;
   final ProfileCubit Function() _profileCubitFactory;
   final SettingsCubit Function() _settingsCubitFactory;
+  final HoroscopeChatBloc Function() _horoscopeChatBlocFactory;
   late final _GoRouterRefreshStream _refreshListenable;
   late final GoRouter router;
 
