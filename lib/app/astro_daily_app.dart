@@ -19,6 +19,7 @@ class AstroDailyApp extends StatelessWidget {
         RepositoryProvider<GemstoneEngine>.value(value: sl<GemstoneEngine>()),
         RepositoryProvider<AiPersonalizer>.value(value: sl<AiPersonalizer>()),
         RepositoryProvider<BillingGateway>.value(value: sl<BillingGateway>()),
+        RepositoryProvider<AdGateway>.value(value: sl<AdGateway>()),
       ],
       child: BlocProvider<AuthBloc>.value(
         value: sl<AuthBloc>(),

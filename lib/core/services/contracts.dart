@@ -122,6 +122,20 @@ abstract class BillingGateway {
   Future<SubscriptionEntitlement> syncEntitlement();
 }
 
+/// Outcome of a rewarded-ad presentation.
+///
+/// - [earned]: the ad SDK reported the user watched enough of the ad to earn
+///   the reward. Only this result should trigger `grantReward`.
+/// - [dismissed]: the user closed the ad before earning the reward.
+/// - [failedToLoad]: no ad was available (network issue, no fill, timeout).
+enum RewardedAdResult { earned, dismissed, failedToLoad }
+
+/// Presents rewarded ads for the "watch an ad to unlock" flow. Implementors
+/// are responsible for preloading ads so `showRewardedAd` returns quickly.
+abstract class AdGateway {
+  Future<RewardedAdResult> showRewardedAd();
+}
+
 /// Decides whether a user can currently use a feature, folding together the
 /// free quota, any rewarded-ad grants, and the user's subscription tier.
 ///

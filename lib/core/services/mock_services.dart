@@ -240,6 +240,14 @@ class LocalTemplateAiPersonalizer implements AiPersonalizer {
       'you connect with people close to you.';
 }
 
+class MockAdGateway implements AdGateway {
+  @override
+  Future<RewardedAdResult> showRewardedAd() async {
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    return RewardedAdResult.earned;
+  }
+}
+
 class MockBillingGateway implements BillingGateway {
   SubscriptionEntitlement _entitlement = const SubscriptionEntitlement(
     tier: SubscriptionTier.free,

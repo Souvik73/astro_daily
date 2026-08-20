@@ -35,6 +35,13 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- AdMob App ID (production). -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-1536607795745971~3224762818</string>
+	<!-- Shown once when a rewarded ad first requests IDFA access for ad
+	     personalization/measurement (App Tracking Transparency). -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier helps us show you fewer, more relevant ads to unlock premium features.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -116,10 +116,9 @@ class HomeCubit extends Cubit<HomeState> {
     return decision;
   }
 
-  /// Records a successful rewarded unlock and returns the updated
-  /// decision. The caller is expected to run the rewarded-ad handshake via
-  /// `AdGateway` before calling this; for now the home page calls it
-  /// directly from the "Watch ad" CTA as a placeholder.
+  /// Records a successful rewarded unlock and returns the updated decision.
+  /// Callers must only invoke this after `AdGateway.showRewardedAd()` has
+  /// reported `RewardedAdResult.earned` — see `home_page.dart`'s `onWatchAd`.
   Future<FeatureAccessDecision> grantReward(AppFeature feature) async {
     final FeatureAccessDecision decision = await _grantFeatureReward(
       GrantFeatureRewardParams(feature: feature),

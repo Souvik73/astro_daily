@@ -217,9 +217,26 @@ class HomePage extends StatelessWidget {
         message: decision.message ??
             'Free quota reached. Watch a short ad to unlock more.',
         onWatchAd: () async {
-          // TODO(ads): wire to `AdGateway.showRewardedAd` and only call
-          // `grantReward` after the ad SDK reports a successful reward.
           Navigator.of(sheetContext).pop();
+          final AdGateway adGateway = context.read<AdGateway>();
+          final RewardedAdResult adResult = await adGateway.showRewardedAd();
+          if (!context.mounted) {
+            return;
+          }
+          if (adResult != RewardedAdResult.earned) {
+            if (adResult == RewardedAdResult.failedToLoad) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Ad not available right now. Please try again shortly.',
+                    ),
+                  ),
+                );
+            }
+            return;
+          }
           final FeatureAccessDecision rewarded =
               await cubit.grantReward(item.feature);
           if (!context.mounted) {

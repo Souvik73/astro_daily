@@ -1,7 +1,32 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthEnvironment {
   const AuthEnvironment._();
+
+  /// Google's official, permanently-stable test ad unit IDs. Used only if
+  /// the platform-specific env vars below are unset — safe fallback for
+  /// local/dev builds since they always serve test creatives and never earn
+  /// real revenue. See: https://developers.google.com/admob/flutter/test-ads
+  static const String _testRewardedAdUnitIdAndroid =
+      'ca-app-pub-3940256099942544/5224354917';
+  static const String _testRewardedAdUnitIdIos =
+      'ca-app-pub-3940256099942544/1712485313';
+
+  /// Rewarded ad unit ID for the current platform. Reads
+  /// ADMOB_REWARDED_AD_UNIT_ID_ANDROID / _IOS from .env; falls back to
+  /// Google's test unit ID when unset.
+  static String get admobRewardedAdUnitId {
+    final String key = Platform.isIOS
+        ? 'ADMOB_REWARDED_AD_UNIT_ID_IOS'
+        : 'ADMOB_REWARDED_AD_UNIT_ID_ANDROID';
+    final String? value = dotenv.env[key];
+    if (value != null && value.isNotEmpty) return value;
+    return Platform.isIOS
+        ? _testRewardedAdUnitIdIos
+        : _testRewardedAdUnitIdAndroid;
+  }
 
   static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
   static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
