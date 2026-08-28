@@ -5,10 +5,32 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/models/subscription_models.dart';
 import '../../../core/widgets/astro_backdrop.dart';
 import '../../../core/widgets/astro_page_components.dart';
+import '../domain/entities/profile_data.dart';
 import 'cubit/profile_cubit.dart';
+import 'widgets/edit_profile_sheet.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  Future<void> _editProfile(BuildContext context, ProfileData profile) async {
+    final bool birthDetailsChanged = await EditProfileSheet.show(
+      context,
+      profile: profile,
+    );
+    if (!context.mounted || !birthDetailsChanged) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Birth details updated — your chart has been recalculated. '
+            'You can change these again in 24 hours.',
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +68,9 @@ class ProfilePage extends StatelessWidget {
                     title: 'Profile',
                     subtitle: 'Your saved identity and birth context.',
                     onBack: () => Navigator.of(context).maybePop(),
-                    trailing: const AstroTopIconButton(
-                      icon: Icons.person_outline_rounded,
+                    trailing: AstroTopIconButton(
+                      icon: Icons.edit_outlined,
+                      onTap: () => _editProfile(context, profile),
                     ),
                   ),
                   const SizedBox(height: 18),

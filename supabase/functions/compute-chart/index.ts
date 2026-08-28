@@ -43,6 +43,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── Build dob_hash (change detection) — computed before geocoding so a
+    // rate-limited request doesn't burn a Nominatim call. ──
+    const dobHash = `${dob}|${tob}|${place.toLowerCase().trim()}`;
+
+    const db = adminClient();
+
+    // ── Rate limit: birth details may only change once every 24 hours.
+    // Only applies when the details are actually changing — a first-time
+    // computation or re-saving identical values is always allowed. ──
+    const { data: existingRow } = await db
+      .from("birth_charts")
+      .select("dob_hash, computed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingRow && existingRow.dob_hash !== dobHash && existingRow.computed_at) {
+      const lastComputedMs = new Date(existingRow.computed_at).getTime();
+      const cooldownMs = 24 * 60 * 60 * 1000;
+      const elapsedMs = Date.now() - lastComputedMs;
+      if (elapsedMs < cooldownMs) {
+        const retryAfterSeconds = Math.ceil((cooldownMs - elapsedMs) / 1000);
+        return new Response(
+          JSON.stringify({
+            error: "rate_limited",
+            message: "Birth details can only be changed once every 24 hours.",
+            retryAfterSeconds,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // ── Geocode ──
     const geo = await geocodePlace(place);
 
@@ -77,11 +109,7 @@ Deno.serve(async (req) => {
     );
     const transits = computeTransits(nowJD);
 
-    // ── Build dob_hash (change detection) ──
-    const dobHash = `${dob}|${tob}|${place.toLowerCase().trim()}`;
-
     // ── Upsert into birth_charts ──
-    const db = adminClient();
     const { error: upsertError } = await db
       .from("birth_charts")
       .upsert(

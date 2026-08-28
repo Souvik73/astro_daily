@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/app_theme.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/domain/entities/user.dart';
+import '../../features/home/presentation/cubit/home_cubit.dart';
 import '../models/subscription_models.dart';
 
 class AstroDrawer extends StatelessWidget {
@@ -93,7 +94,7 @@ class AstroDrawer extends StatelessWidget {
                     icon: Icons.person_outline_rounded,
                     title: 'Profile',
                     subtitle: 'View your cosmic profile',
-                    onTap: () => _navigate(context, '/profile'),
+                    onTap: () => _navigateToProfile(context),
                   ),
                   _DrawerTile(
                     icon: Icons.workspace_premium_outlined,
@@ -129,6 +130,17 @@ class AstroDrawer extends StatelessWidget {
   void _navigate(BuildContext context, String route) {
     // Navigator.of(context).pop();
     context.push(route);
+  }
+
+  /// Profile editing can change birth details, which recalculates the
+  /// user's chart server-side — reload the dashboard on return so the
+  /// greeting/zodiac reflect the change instead of the stale cubit state.
+  Future<void> _navigateToProfile(BuildContext context) async {
+    final HomeCubit homeCubit = context.read<HomeCubit>();
+    await context.push('/profile');
+    if (context.mounted) {
+      homeCubit.loadDashboard();
+    }
   }
 }
 
