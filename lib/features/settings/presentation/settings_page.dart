@@ -20,7 +20,8 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Delete account?'),
         content: const Text(
-          'This action is irreversible. v1 currently signs out and marks this flow for backend deletion integration.',
+          'This action is irreversible. Your profile, birth chart, and all '
+          'saved data will be permanently deleted.',
         ),
         actions: <Widget>[
           TextButton(
@@ -191,7 +192,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Deleting the account currently signs you out and marks this action for real backend deletion support.',
+                            'Permanently deletes your account and all saved data. This cannot be undone.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 16),
