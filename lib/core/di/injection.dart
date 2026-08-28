@@ -65,6 +65,8 @@ import '../../features/numerology/presentation/cubit/numerology_cubit.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/usecases/get_profile.dart';
+import '../../features/profile/domain/usecases/update_birth_profile.dart';
+import '../../features/profile/domain/usecases/update_display_name.dart';
 import '../../features/profile/presentation/cubit/profile_cubit.dart';
 import '../../features/settings/data/datasources/settings_local_data_source.dart';
 import '../../features/settings/data/repositories/settings_repository_impl.dart';
@@ -85,6 +87,7 @@ import '../models/subscription_models.dart';
 import '../policy/usage_policy.dart';
 import '../config/auth_environment.dart' show AuthEnvironment;
 import '../services/admob_ad_gateway.dart';
+import '../services/firebase_push_notification_gateway.dart';
 import '../services/contracts.dart';
 import '../services/in_app_purchase_billing_gateway.dart';
 import '../services/mock_services.dart';
@@ -121,6 +124,14 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<GemstoneEngine>(() => RuleBasedGemstoneEngine());
   sl.registerLazySingleton<AdGateway>(
     _useMocks ? () => MockAdGateway() : () => AdMobAdGateway(),
+  );
+  sl.registerLazySingleton<PushNotificationGateway>(
+    _useMocks
+        ? () => MockPushNotificationGateway()
+        : () => FirebasePushNotificationGateway(
+            supabaseClient: sl<SupabaseClient>(),
+            authRepository: sl<auth_contract.AuthRepository>(),
+          ),
   );
   sl.registerLazySingleton<BillingGateway>(
     _useMocks
@@ -401,22 +412,34 @@ Future<void> initDependencies({bool reset = false}) async {
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(
       authRepository: sl<auth_contract.AuthRepository>(),
+      supabaseClient: sl<SupabaseClient>(),
     ),
   );
   sl.registerLazySingleton<GetProfile>(
     () => GetProfile(sl<ProfileRepository>()),
   );
+  sl.registerLazySingleton<UpdateDisplayName>(
+    () => UpdateDisplayName(sl<ProfileRepository>()),
+  );
+  sl.registerLazySingleton<UpdateBirthProfile>(
+    () => UpdateBirthProfile(sl<ProfileRepository>()),
+  );
   sl.registerFactory<ProfileCubit>(
-    () => ProfileCubit(getProfile: sl<GetProfile>()),
+    () => ProfileCubit(
+      getProfile: sl<GetProfile>(),
+      updateDisplayName: sl<UpdateDisplayName>(),
+      updateBirthProfile: sl<UpdateBirthProfile>(),
+    ),
   );
 
   sl.registerLazySingleton<SettingsLocalDataSource>(
-    () => SettingsLocalDataSourceImpl(),
+    () => SettingsLocalDataSourceImpl(preferences: sl<SharedPreferences>()),
   );
   sl.registerLazySingleton<SettingsRepository>(
     () => SettingsRepositoryImpl(
       localDataSource: sl<SettingsLocalDataSource>(),
       authRepository: sl<auth_contract.AuthRepository>(),
+      pushNotificationGateway: sl<PushNotificationGateway>(),
     ),
   );
   sl.registerLazySingleton<GetSettingsPreferences>(
