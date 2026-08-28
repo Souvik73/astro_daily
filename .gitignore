@@ -48,3 +48,6 @@ app.*.map.json
 
 # Environment variables
 .env
+
+# Supabase CLI local cache/state
+supabase/.temp/
