@@ -248,6 +248,19 @@ class MockAdGateway implements AdGateway {
   }
 }
 
+class MockPushNotificationGateway implements PushNotificationGateway {
+  @override
+  Future<PushPermissionResult> requestPermissionAndRegister() async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    return PushPermissionResult.granted;
+  }
+
+  @override
+  Future<void> unregister() async {
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+  }
+}
+
 class MockBillingGateway implements BillingGateway {
   SubscriptionEntitlement _entitlement = const SubscriptionEntitlement(
     tier: SubscriptionTier.free,

@@ -136,6 +136,24 @@ abstract class AdGateway {
   Future<RewardedAdResult> showRewardedAd();
 }
 
+/// Result of requesting OS push-notification permission.
+///
+/// - [granted]: permission given, a device token was obtained and
+///   registered.
+/// - [denied]: the user (or a prior OS-level choice) declined permission.
+/// - [unavailable]: the push provider isn't configured/reachable (e.g. no
+///   Firebase project set up yet) — distinct from [denied] so the UI can
+///   tell "you said no" apart from "this isn't wired up yet".
+enum PushPermissionResult { granted, denied, unavailable }
+
+/// Registers/unregisters this device for push notifications. The "Daily
+/// push notifications" setting toggle maps directly to
+/// [requestPermissionAndRegister] / [unregister].
+abstract class PushNotificationGateway {
+  Future<PushPermissionResult> requestPermissionAndRegister();
+  Future<void> unregister();
+}
+
 /// Decides whether a user can currently use a feature, folding together the
 /// free quota, any rewarded-ad grants, and the user's subscription tier.
 ///

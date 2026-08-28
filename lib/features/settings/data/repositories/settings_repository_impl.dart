@@ -1,3 +1,4 @@
+import '../../../../core/services/contracts.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/entities/settings_preferences.dart';
 import '../../domain/repositories/settings_repository.dart';
@@ -7,15 +8,18 @@ class SettingsRepositoryImpl implements SettingsRepository {
   SettingsRepositoryImpl({
     required SettingsLocalDataSource localDataSource,
     required AuthRepository authRepository,
+    required PushNotificationGateway pushNotificationGateway,
   }) : _localDataSource = localDataSource,
-       _authRepository = authRepository;
+       _authRepository = authRepository,
+       _pushNotificationGateway = pushNotificationGateway;
 
   final SettingsLocalDataSource _localDataSource;
   final AuthRepository _authRepository;
+  final PushNotificationGateway _pushNotificationGateway;
 
   @override
   Future<void> deleteAccount() async {
-    await _authRepository.signOut();
+    await _authRepository.deleteAccount();
   }
 
   @override
@@ -29,7 +33,15 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @override
-  Future<SettingsPreferences> updatePushEnabled(bool enabled) {
-    return _localDataSource.updatePushEnabled(enabled);
+  Future<SettingsPreferences> updatePushEnabled(bool enabled) async {
+    if (enabled) {
+      final PushPermissionResult result = await _pushNotificationGateway
+          .requestPermissionAndRegister();
+      return _localDataSource.updatePushEnabled(
+        result == PushPermissionResult.granted,
+      );
+    }
+    await _pushNotificationGateway.unregister();
+    return _localDataSource.updatePushEnabled(false);
   }
 }

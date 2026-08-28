@@ -51,6 +51,30 @@ class AuthEnvironment {
     return value == null ? true : _readBool(value);
   }
 
+  /// Firebase project config for push notifications. All empty by default —
+  /// there is no safe "test project" equivalent to AdMob's public test IDs,
+  /// so push notifications stay inert (permission request fails gracefully)
+  /// until a real Firebase project's values are set in .env.
+  static String get firebaseProjectId =>
+      dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
+  static String get firebaseMessagingSenderId =>
+      dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
+  static String get firebaseApiKeyAndroid =>
+      dotenv.env['FIREBASE_API_KEY_ANDROID'] ?? '';
+  static String get firebaseAppIdAndroid =>
+      dotenv.env['FIREBASE_APP_ID_ANDROID'] ?? '';
+  static String get firebaseApiKeyIos =>
+      dotenv.env['FIREBASE_API_KEY_IOS'] ?? '';
+  static String get firebaseAppIdIos => dotenv.env['FIREBASE_APP_ID_IOS'] ?? '';
+  static String get firebaseIosBundleId =>
+      dotenv.env['FIREBASE_IOS_BUNDLE_ID'] ?? '';
+
+  /// True once enough config is present to attempt Firebase initialization.
+  static bool get firebaseConfigured =>
+      firebaseProjectId.isNotEmpty &&
+      firebaseMessagingSenderId.isNotEmpty &&
+      (Platform.isIOS ? firebaseApiKeyIos : firebaseApiKeyAndroid).isNotEmpty;
+
   static bool _readBool(String? value) {
     if (value == null) {
       return false;

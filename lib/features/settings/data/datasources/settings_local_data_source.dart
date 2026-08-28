@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../domain/entities/settings_preferences.dart';
 
 abstract class SettingsLocalDataSource {
@@ -7,25 +9,31 @@ abstract class SettingsLocalDataSource {
 }
 
 class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
-  SettingsPreferences _preferences = const SettingsPreferences(
-    pushEnabled: true,
-    localAiEnabled: true,
-  );
+  SettingsLocalDataSourceImpl({required SharedPreferences preferences})
+    : _preferences = preferences;
+
+  static const String _pushEnabledKey = 'settings_push_enabled';
+  static const String _localAiEnabledKey = 'settings_local_ai_enabled';
+
+  final SharedPreferences _preferences;
 
   @override
   Future<SettingsPreferences> getPreferences() async {
-    return _preferences;
+    return SettingsPreferences(
+      pushEnabled: _preferences.getBool(_pushEnabledKey) ?? true,
+      localAiEnabled: _preferences.getBool(_localAiEnabledKey) ?? true,
+    );
   }
 
   @override
   Future<SettingsPreferences> updateLocalAiEnabled(bool enabled) async {
-    _preferences = _preferences.copyWith(localAiEnabled: enabled);
-    return _preferences;
+    await _preferences.setBool(_localAiEnabledKey, enabled);
+    return getPreferences();
   }
 
   @override
   Future<SettingsPreferences> updatePushEnabled(bool enabled) async {
-    _preferences = _preferences.copyWith(pushEnabled: enabled);
-    return _preferences;
+    await _preferences.setBool(_pushEnabledKey, enabled);
+    return getPreferences();
   }
 }
