@@ -1,3 +1,4 @@
+import '../../../../core/error/failures.dart';
 import '../../../../core/services/contracts.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/entities/settings_preferences.dart';
@@ -37,6 +38,12 @@ class SettingsRepositoryImpl implements SettingsRepository {
     if (enabled) {
       final PushPermissionResult result = await _pushNotificationGateway
           .requestPermissionAndRegister();
+      if (result == PushPermissionResult.unavailable) {
+        // Distinct from "denied" — the user never got an OS prompt to
+        // answer, so don't record this as their choice. The switch stays
+        // wherever it already was.
+        throw const PushUnavailableFailure();
+      }
       return _localDataSource.updatePushEnabled(
         result == PushPermissionResult.granted,
       );

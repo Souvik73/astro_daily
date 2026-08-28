@@ -45,3 +45,12 @@ class AiChartMissingFailure extends Failure {
 class BirthProfileRateLimitedFailure extends Failure {
   const BirthProfileRateLimitedFailure(super.message);
 }
+
+/// Thrown when push notifications can't be turned on because the push
+/// provider itself isn't configured (no Firebase project set up yet) —
+/// distinct from the user simply declining the OS permission dialog, so
+/// the UI can say which one actually happened instead of hedging.
+class PushUnavailableFailure extends Failure {
+  const PushUnavailableFailure()
+      : super('Push notifications are not set up for this app yet.');
+}

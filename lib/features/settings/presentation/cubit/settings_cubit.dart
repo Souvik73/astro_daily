@@ -106,17 +106,26 @@ class SettingsCubit extends Cubit<SettingsState> {
       final SettingsPreferences preferences = await _updatePushEnabled(
         UpdatePushEnabledParams(enabled: enabled),
       );
-      // The gateway may not have been able to grant what was requested
-      // (permission denied, or push isn't configured yet) — reflect that
-      // back rather than letting the switch silently snap off unexplained.
+      // The gateway may not have granted what was requested (permission
+      // denied) — reflect that back rather than letting the switch
+      // silently snap off unexplained.
       final String? info = (enabled && !preferences.pushEnabled)
-          ? 'Notifications permission was declined or is not available yet.'
+          ? 'Notifications permission was declined.'
           : null;
       emit(
         state.copyWith(
           status: SettingsStatus.success,
           preferences: preferences,
           infoMessage: info,
+        ),
+      );
+    } on PushUnavailableFailure catch (failure) {
+      // Distinct from denial — there was no OS prompt to answer, so the
+      // switch stays wherever it already was (preferences untouched).
+      emit(
+        state.copyWith(
+          status: SettingsStatus.success,
+          infoMessage: failure.message,
         ),
       );
     } catch (_) {
