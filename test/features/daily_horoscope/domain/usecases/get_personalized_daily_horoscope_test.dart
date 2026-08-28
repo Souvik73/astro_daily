@@ -158,6 +158,15 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> updateSubscriptionTier(SubscriptionTier tier) async {}
+
+  @override
+  Future<void> updateDisplayName(String displayName) async {}
+
+  @override
+  Future<void> updateBirthProfile(BirthProfile birthProfile) async {}
+
+  @override
+  Future<void> deleteAccount() async {}
 }
 
 BirthProfile _birthProfile({

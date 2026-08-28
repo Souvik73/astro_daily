@@ -39,3 +39,9 @@ class AiChartMissingFailure extends Failure {
   const AiChartMissingFailure()
       : super('Please complete your birth profile to use this feature.');
 }
+
+/// Thrown when the user tries to change their birth details before the
+/// 24-hour cooldown since their last change has elapsed.
+class BirthProfileRateLimitedFailure extends Failure {
+  const BirthProfileRateLimitedFailure(super.message);
+}

@@ -1,3 +1,4 @@
+import '../../../../core/models/birth_profile.dart';
 import '../../../../core/models/subscription_models.dart';
 import '../../domain/entities/auth_profile.dart';
 import '../../domain/entities/user.dart';
@@ -66,5 +67,20 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> updateSubscriptionTier(SubscriptionTier tier) {
     return _localDataSource.updateSubscriptionTier(tier);
+  }
+
+  @override
+  Future<void> updateDisplayName(String displayName) {
+    return _localDataSource.updateDisplayName(displayName);
+  }
+
+  @override
+  Future<void> updateBirthProfile(BirthProfile birthProfile) {
+    return _localDataSource.updateBirthProfile(birthProfile);
+  }
+
+  @override
+  Future<void> deleteAccount() {
+    return _localDataSource.deleteAccount();
   }
 }

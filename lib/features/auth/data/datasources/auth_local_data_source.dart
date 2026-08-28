@@ -29,6 +29,9 @@ abstract class AuthLocalDataSource {
   Future<void> signOut();
   Future<void> completeProfile(AuthProfile profile);
   Future<void> updateSubscriptionTier(SubscriptionTier tier);
+  Future<void> updateDisplayName(String displayName);
+  Future<void> updateBirthProfile(BirthProfile birthProfile);
+  Future<void> deleteAccount();
   void dispose();
 }
 
@@ -333,6 +336,41 @@ class SupabaseAuthLocalDataSource implements AuthLocalDataSource {
     }
   }
 
+  /// Permanently deletes the user's data and auth account via the
+  /// `delete-account` edge function, then signs out locally. The server is
+  /// the actual authority — this only clears the local session once the
+  /// account is confirmed gone.
+  @override
+  Future<void> deleteAccount() async {
+    final User? user = getCurrentUser();
+    if (user == null) {
+      return;
+    }
+
+    try {
+      final supabase.FunctionResponse response = await _supabaseClient
+          .functions
+          .invoke('delete-account');
+      if (response.data is Map) {
+        final Map<dynamic, dynamic> data = response.data as Map;
+        if (data['error'] != null) {
+          throw const DataFailure('Unable to delete your account right now.');
+        }
+      }
+    } on supabase.FunctionException {
+      throw const DataFailure('Unable to delete your account right now.');
+    } on Failure {
+      rethrow;
+    } catch (error) {
+      throw _mapWriteFailure(
+        error,
+        fallbackMessage: 'Unable to delete your account right now.',
+      );
+    }
+
+    await signOut();
+  }
+
   @override
   Future<void> completeProfile(AuthProfile profile) async {
     final supabase.User? currentUser = _authClient.currentUser;
@@ -379,6 +417,135 @@ class SupabaseAuthLocalDataSource implements AuthLocalDataSource {
     } catch (_) {
       throw const DataFailure(
         'Unable to update subscription status right now.',
+      );
+    }
+  }
+
+  @override
+  Future<void> updateDisplayName(String displayName) async {
+    final User? user = getCurrentUser();
+    if (user == null) {
+      return;
+    }
+    final String trimmed = displayName.trim();
+    if (trimmed.isEmpty) {
+      throw const DataFailure('Name cannot be empty.');
+    }
+
+    try {
+      await _authClient.updateUser(
+        supabase.UserAttributes(
+          data: <String, dynamic>{
+            _displayNameKey: trimmed,
+            _fullNameKey: trimmed,
+          },
+        ),
+      );
+      if (_profilesTableAvailable != false) {
+        try {
+          await _supabaseClient.from(_profilesTable).upsert(<String, dynamic>{
+            'user_id': user.id,
+            _displayNameKey: trimmed,
+          }, onConflict: 'user_id');
+          _profilesTableAvailable = true;
+        } on supabase.PostgrestException catch (error) {
+          if (!_markTableUnavailableIfMissing(error, _profilesTable)) {
+            rethrow;
+          }
+        }
+      }
+      final User updated = user.copyWith(displayName: trimmed);
+      _currentUser = updated;
+      _usersById[updated.id] = updated;
+      _authStateController.add(updated);
+    } on supabase.AuthException catch (error) {
+      throw AuthFailure(_normalizeAuthMessage(error.message));
+    } on Failure {
+      rethrow;
+    } catch (_) {
+      throw const DataFailure('Unable to update your name right now.');
+    }
+  }
+
+  /// Updates DOB/time/place and recomputes the natal chart server-side via
+  /// `compute-chart`. That edge function enforces a 24-hour cooldown between
+  /// changes (see its own rate-limit check) — this method surfaces that as
+  /// [BirthProfileRateLimitedFailure] rather than a generic failure so the
+  /// UI can show the real reason.
+  @override
+  Future<void> updateBirthProfile(BirthProfile birthProfile) async {
+    final User? user = getCurrentUser();
+    if (user == null) {
+      return;
+    }
+
+    try {
+      if (_birthDetailsTableAvailable != false) {
+        try {
+          await _supabaseClient.from(_birthDetailsTable).upsert(<String, dynamic>{
+            'user_id': user.id,
+            _zodiacSignKey: birthProfile.zodiacSign,
+            _dateOfBirthKey: birthProfile.dateOfBirth.toIso8601String(),
+            _timeOfBirthKey: birthProfile.timeOfBirth,
+            _placeOfBirthKey: birthProfile.placeOfBirth,
+          }, onConflict: 'user_id');
+          _birthDetailsTableAvailable = true;
+        } on supabase.PostgrestException catch (error) {
+          if (!_markTableUnavailableIfMissing(error, _birthDetailsTable)) {
+            rethrow;
+          }
+        }
+      }
+
+      final DateTime dob = birthProfile.dateOfBirth;
+      final String dobStr =
+          '${dob.year.toString().padLeft(4, '0')}-'
+          '${dob.month.toString().padLeft(2, '0')}-'
+          '${dob.day.toString().padLeft(2, '0')}';
+
+      final supabase.FunctionResponse response = await _supabaseClient.functions
+          .invoke(
+            'compute-chart',
+            body: <String, dynamic>{
+              'dob': dobStr,
+              'tob': birthProfile.timeOfBirth,
+              'place': birthProfile.placeOfBirth,
+            },
+          );
+
+      if (response.data is Map) {
+        final Map<dynamic, dynamic> data = response.data as Map;
+        if (data['error'] == 'rate_limited') {
+          throw BirthProfileRateLimitedFailure(
+            data['message'] as String? ??
+                'Birth details can only be changed once every 24 hours.',
+          );
+        }
+        if (data['error'] != null) {
+          throw const DataFailure('Unable to recalculate your chart right now.');
+        }
+      }
+
+      final User updated = user.copyWith(birthProfile: birthProfile);
+      _currentUser = updated;
+      _usersById[updated.id] = updated;
+      _authStateController.add(updated);
+    } on supabase.FunctionException catch (error) {
+      if (error.status == 429) {
+        final dynamic details = error.details;
+        final String? message =
+            details is Map ? details['message'] as String? : null;
+        throw BirthProfileRateLimitedFailure(
+          message ?? 'Birth details can only be changed once every 24 hours.',
+        );
+      }
+      throw const DataFailure('Unable to recalculate your chart right now.');
+    } on Failure {
+      rethrow;
+    } catch (error) {
+      throw _mapWriteFailure(
+        error,
+        fallbackMessage: 'Unable to save your birth details right now.',
       );
     }
   }

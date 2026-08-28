@@ -1,3 +1,4 @@
+import '../../../../core/models/birth_profile.dart';
 import '../../../../core/models/subscription_models.dart';
 import '../entities/auth_profile.dart';
 import '../entities/user.dart';
@@ -17,4 +18,7 @@ abstract class AuthRepository {
   Future<void> signOut();
   Future<void> completeProfile(AuthProfile profile);
   Future<void> updateSubscriptionTier(SubscriptionTier tier);
+  Future<void> updateDisplayName(String displayName);
+  Future<void> updateBirthProfile(BirthProfile birthProfile);
+  Future<void> deleteAccount();
 }

@@ -180,6 +180,30 @@ class _FakeAuthRepository implements AuthRepository {
     }
     seedUser(user.copyWith(tier: tier));
   }
+
+  @override
+  Future<void> updateDisplayName(String displayName) async {
+    final User? user = _currentUser;
+    if (user == null) {
+      return;
+    }
+    seedUser(user.copyWith(displayName: displayName));
+  }
+
+  @override
+  Future<void> updateBirthProfile(BirthProfile birthProfile) async {
+    final User? user = _currentUser;
+    if (user == null) {
+      return;
+    }
+    seedUser(user.copyWith(birthProfile: birthProfile));
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    _currentUser = null;
+    _controller.add(null);
+  }
 }
 
 BirthProfile _birthProfile({

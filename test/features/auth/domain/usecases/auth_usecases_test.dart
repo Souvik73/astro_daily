@@ -245,6 +245,34 @@ class _FakeAuthRepository implements AuthRepository {
     _currentUser = updated;
     _controller.add(updated);
   }
+
+  @override
+  Future<void> updateDisplayName(String displayName) async {
+    final User? user = _currentUser;
+    if (user == null) {
+      return;
+    }
+    final User updated = user.copyWith(displayName: displayName);
+    _currentUser = updated;
+    _controller.add(updated);
+  }
+
+  @override
+  Future<void> updateBirthProfile(BirthProfile birthProfile) async {
+    final User? user = _currentUser;
+    if (user == null) {
+      return;
+    }
+    final User updated = user.copyWith(birthProfile: birthProfile);
+    _currentUser = updated;
+    _controller.add(updated);
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    _currentUser = null;
+    _controller.add(null);
+  }
 }
 
 BirthProfile _birthProfile({
