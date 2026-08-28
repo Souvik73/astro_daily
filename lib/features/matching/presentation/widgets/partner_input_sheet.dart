@@ -124,88 +124,90 @@ class _PartnerInputSheetState extends State<PartnerInputSheet> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Form(
               key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.border,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          "Partner's birth details",
-                          style: Theme.of(context).textTheme.titleMedium,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.border,
+                          borderRadius: BorderRadius.circular(99),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded),
-                        color: AppTheme.inkSoft,
+                    ),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Text(
+                            "Partner's birth details",
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                          color: AppTheme.inkSoft,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Used only to calculate compatibility — not shared with '
+                      'your partner.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: _dateController,
+                      readOnly: true,
+                      onTap: _pickDate,
+                      decoration: const InputDecoration(
+                        labelText: 'Date of birth',
+                        suffixIcon: Icon(Icons.calendar_today_outlined),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Used only to calculate compatibility — not shared with '
-                    'your partner.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 18),
-                  TextFormField(
-                    controller: _dateController,
-                    readOnly: true,
-                    onTap: _pickDate,
-                    decoration: const InputDecoration(
-                      labelText: 'Date of birth',
-                      suffixIcon: Icon(Icons.calendar_today_outlined),
+                      validator: (String? value) => (value ?? '').isEmpty
+                          ? "Partner's date of birth is required"
+                          : null,
                     ),
-                    validator: (String? value) => (value ?? '').isEmpty
-                        ? "Partner's date of birth is required"
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _timeController,
-                    readOnly: true,
-                    onTap: _pickTime,
-                    decoration: const InputDecoration(
-                      labelText: 'Time of birth',
-                      suffixIcon: Icon(Icons.access_time_outlined),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _timeController,
+                      readOnly: true,
+                      onTap: _pickTime,
+                      decoration: const InputDecoration(
+                        labelText: 'Time of birth',
+                        suffixIcon: Icon(Icons.access_time_outlined),
+                      ),
+                      validator: (String? value) => (value ?? '').isEmpty
+                          ? "Partner's time of birth is required"
+                          : null,
                     ),
-                    validator: (String? value) => (value ?? '').isEmpty
-                        ? "Partner's time of birth is required"
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _placeController,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(
-                      labelText: 'Place of birth',
-                      hintText: 'City, Country',
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _placeController,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: const InputDecoration(
+                        labelText: 'Place of birth',
+                        hintText: 'City, Country',
+                      ),
+                      validator: (String? value) =>
+                          (value?.trim() ?? '').isEmpty
+                          ? "Partner's place of birth is required"
+                          : null,
                     ),
-                    validator: (String? value) =>
-                        (value?.trim() ?? '').isEmpty
-                        ? "Partner's place of birth is required"
-                        : null,
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _submit,
-                    child: const Text('Check compatibility'),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _submit,
+                      child: const Text('Check compatibility'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
